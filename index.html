@@ -2,31 +2,24 @@
 <html lang="ja">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>競馬アナリティクス – トップ</title>
+<title>競馬アナリティクス</title>
 <style>
   :root{--bg:#f7f7f9;--card:#fff;--border:#e5e7eb;--text:#111}
   body{margin:0;background:linear-gradient(#fafafa,#f3f4f6);font-family:system-ui,"Noto Sans JP",sans-serif;color:var(--text)}
-  .wrap{max-width:720px;margin:0 auto;padding:32px 16px 80px}
+  .wrap{max-width:720px;margin:0 auto;padding:36px 16px 80px;text-align:center}
   h1{font-size:20px;margin:0 0 16px}
-  .card{background:var(--card);border:1px solid var(--border);border-radius:16px;box-shadow:0 4px 12px rgba(0,0,0,.03);padding:20px;margin:12px 0}
-  a.btn{display:block;text-decoration:none;border:1px solid var(--border);border-radius:14px;padding:16px 18px;margin:10px 0;font-weight:700}
+  p{margin:4px 0 18px;color:#667085}
+  a.btn{display:block;margin:10px 0;padding:16px 18px;border:1px solid var(--border);border-radius:14px;
+        text-decoration:none;color:var(--text);font-weight:700}
   a.btn:hover{background:#111;color:#fff;border-color:#111}
-  .muted{color:#667085;font-size:13px}
+  .small{font-size:12px;color:#8a8f98;margin-top:22px}
 </style>
 <div class="wrap">
-  <h1>競馬アナリティクス（自分用β）</h1>
+  <h1>競馬アナリティクス（自分用）</h1>
+  <p>使いたい機能を選んでください。</p>
 
-  <div class="card">
-    <a class="btn" href="./index_cascade_plus.html">コース別 早見表（拡張 v1.0）</a>
-    <div class="muted">場×馬場×距離を選択 → 通過/上がり3F/クッション/含水の平均。<br>内外・A〜D・回り・直線距離m・高低差・坂 有無のプリセット＆CSV対応。</div>
-  </div>
+  <a class="btn" href="./index_cascade_plus.html?v=1">コース別 早見表（拡張）</a>
+  <a class="btn" href="./index_track_condition.html?v=1">馬場コンディション（CV/含水）</a>
 
-  <div class="card">
-    <a class="btn" href="./index_track_condition.html">馬場コンディション（クッション値・含水率）</a>
-    <div class="muted">入力 or CSVから、現在の値と「良/稍重/重/不良」目安を横メーターで可視化。</div>
-  </div>
-
-  <div class="card">
-    <div class="muted">v1.0 / GitHub Pages 配信中（main / root）</div>
-  </div>
+  <div class="small">GitHub Pages / main / root</div>
 </div>
