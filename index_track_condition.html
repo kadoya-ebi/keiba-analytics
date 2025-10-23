@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>馬場コンディション早見（JRA全10場）v0.1</title>
+<style>
+  :root{--bg:#f6f7fb;--card:#fff;--border:#e5e7eb;--text:#111;--muted:#6b7280}
+  body{margin:0;background:linear-gradient(#fafafa,#f3f4f6);font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,"Noto Sans JP","Hiragino Kaku Gothic ProN",Meiryo,sans-serif;color:var(--text)}
+  .wrap{max-width:1000px;margin:0 auto;padding:16px 16px 72px}
+  h1{font-size:20px;margin:0 0 10px}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:16px;box-shadow:0 4px 12px rgba(0,0,0,.03);padding:16px;margin:12px 0}
+  .muted{color:var(--muted);font-size:12px}
+  .toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:space-between}
+  button{font:inherit;cursor:pointer;border:1px solid var(--border);background:#fff;border-radius:999px;padding:8px 14px}
+  button.primary{background:#111;color:#fff;border-color:#111}
+  input{padding:10px;border:1px solid var(--border);border-radius:12px;background:#fff;width:100%;box-sizing:border-box}
+  .grid{display:grid;gap:12px}
+  .g-2{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .trackCard{border:1px solid var(--border);border-radius:16px;padding:12px;background:#fff}
+  .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  .title{font-weight:700}
+  .kv{display:grid;grid-template-columns:84px 1fr 84px 1fr;gap:8px;align-items:center}
+  .meter{position:relative;height:18px;border-radius:999px;border:1px solid var(--border);overflow:hidden;
+    background:
+      linear-gradient(90deg,
+        #c2a89b 0%, #c2a89b 25%,   /* 不良 */
+        #f0c27b 25%, #f0c27b 50%,  /* 重 */
+        #a7c5eb 50%, #a7c5eb 75%,  /* 稍重 */
+        #86efac 75%, #86efac 100%  /* 良 */
+      )}
+  .ticks{position:absolute;inset:0}
+  .ticks span{position:absolute;top:20px;transform:translateX(-50%);font-size:10px;color:#374151}
+  .marker{position:absolute;top:-2px;width:6px;height:22px;background:#111;border-radius:2px}
+  .comment{font-size:13px;color:#111;margin-top:8px}
+  .hint{font-size:11px;color:#6b7280;margin-left:6px}
+  @media (max-width:640px){
+    .kv{grid-template-columns:84px 1fr}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>馬場コンディション早見（JRA全10場）</h1>
+  <div class="card">
+    <div class="toolbar">
+      <div class="row">
+        <button id="btnExport">CSV書き出し</button>
+        <label><span style="padding:8px 14px;border:11px solid var(--border);border-radius:999px;background:#fff;cursor:pointer;display:inline-block">CSV読み込み<input id="fileCsv" type="file" accept=".csv,text/csv" style="display:none"></span></label>
+        <button id="btnClear">全消去</button>
+      </div>
+      <div class="muted">列：track,cushion,moisture,comment（値は手入力／保存は端末内）</div>
+    </div>
+    <div class="muted" style="margin-top:6px">
+      目安スケール：左← 不良 / 重 / 稍重 / 良 →右
+      <span class="hint">クッション値は右ほど速め、含水率は左ほど速めです（スケール内部で自動補正）</span>
+    </div>
+  </div>
+
+  <div id="list" class="grid"></div>
+</div>
+
+<script>
+(function(){
+  const lsKey = "jra_track_conditions_v01";
+  const tracks = ["札幌","函館","福島","新潟","東京","中山","中京","京都","阪神","小倉"];
+
+  // Cushion scale: 8.0 (bad) -> 10.5 (fast)
+  const CV_MIN = 8.0, CV_MAX = 10.5;
+  // Moisture scale: 20% (bad) -> 5% (fast) [inverted]
+  const MOIST_MAX_BAD = 20.0, MOIST_MIN_FAST = 5.0;
+
+  function clamp(x, a, b){ return Math.max(a, Math.min(b, x)); }
+  function norm(x, a, b){ return (x-a)/(b-a); }
+
+  function load(){
+    try{ return JSON.parse(localStorage.getItem(lsKey)) || {}; }catch{ return {}; }
+  }
+  function save(obj){ localStorage.setItem(lsKey, JSON.stringify(obj)); }
+
+  function autoComment(cv, moist){
+    // Normalize to "速さ" score: 0(重)〜1(速)
+    let sCv = isFinite(cv) ? clamp(norm(cv, CV_MIN, CV_MAX), 0, 1) : NaN;
+    let sMo = isFinite(moist) ? clamp((MOIST_MAX_BAD - moist) / (MOIST_MAX_BAD - MOIST_MIN_FAST), 0, 1) : NaN;
+    const vals = [sCv, sMo].filter(x=>isFinite(x));
+    if (!vals.length) return "—";
+    const s = vals.reduce((a,v)=>a+v,0)/vals.length;
+    if (s >= 0.75) return "高速寄り（時計速め／瞬発〜前半速め）";
+    if (s >= 0.55) return "やや高速（標準〜やや速め）";
+    if (s >= 0.35) return "標準〜やや重（時計かかり気味）";
+    return "重め（持久戦傾向／パワー要求）";
+  }
+
+  function toCsv(data){
+    const header = ["track","cushion","moisture","comment"];
+    const lines = [header.join(",")];
+    for (const t of tracks){
+      const row = data[t] || {};
+      lines.push([t, row.cushion??"", row.moisture??"", (row.comment??"").replace(/,/g," ")].join(","));
+    }
+    return lines.join("\\n");
+  }
+
+  function fromCsv(text){
+    const lines = text.split(/\\r?\\n/).filter(Boolean);
+    const head = lines[0].split(",");
+    const idx = (k)=> head.indexOf(k);
+    const out = {};
+    for (const line of lines.slice(1)){
+      const c = line.split(",");
+      const t = c[idx("track")];
+      if (!t) continue;
+      out[t] = {
+        cushion: Number(c[idx("cushion")]),
+        moisture: Number(c[idx("moisture")]),
+        comment: c[idx("comment")]||""
+      };
+    }
+    return out;
+  }
+
+  function labelTicks(el){
+    const labels = ["不良","重","稍重","良"];
+    const cont = document.createElement("div");
+    cont.className = "ticks";
+    [0,25,50,75,100].forEach((p,i)=>{
+      const s = document.createElement("span");
+      s.style.left = p+"%";
+      s.textContent = i===0? labels[0] : i===1? labels[1] : i===2? labels[2] : i===3? labels[3] : "";
+      cont.appendChild(s);
+    });
+    el.appendChild(cont);
+  }
+
+  function createTrackCard(name, val, onChange){
+    const card = document.createElement("div");
+    card.className = "trackCard";
+
+    const title = document.createElement("div");
+    title.className = "title";
+    title.textContent = name;
+    card.appendChild(title);
+
+    // Inputs
+    const kv = document.createElement("div");
+    kv.className = "kv";
+    kv.innerHTML = `
+      <div>クッション</div><input type="number" step="0.1" placeholder="例: 9.5" class="inCv">
+      <div>含水率(%)</div><input type="number" step="0.1" placeholder="例: 12.0" class="inMo">
+    `;
+    card.appendChild(kv);
+
+    // Cushion meter
+    const meterCv = document.createElement("div");
+    meterCv.className = "meter"; meterCv.style.marginTop = "10px";
+    labelTicks(meterCv);
+    const markerCv = document.createElement("div");
+    markerCv.className = "marker"; meterCv.appendChild(markerCv);
+    card.appendChild(meterCv);
+
+    // Moisture meter (inverted scale)
+    const meterMo = document.createElement("div");
+    meterMo.className = "meter"; meterMo.style.marginTop = "26px";
+    labelTicks(meterMo);
+    const markerMo = document.createElement("div");
+    markerMo.className = "marker"; meterMo.appendChild(markerMo);
+    card.appendChild(meterMo);
+
+    // Comment
+    const comment = document.createElement("div");
+    comment.className = "comment";
+    card.appendChild(comment);
+
+    // Set initial
+    const inCv = kv.querySelector(".inCv");
+    const inMo = kv.querySelector(".inMo");
+    if (isFinite(val.cushion)) inCv.value = val.cushion;
+    if (isFinite(val.moisture)) inMo.value = val.moisture;
+
+    function update(){
+      const cv = Number(inCv.value);
+      const mo = Number(inMo.value);
+      let posCv = isFinite(cv) ? Math.max(0, Math.min(1, (cv - CV_MIN)/(CV_MAX - CV_MIN))) : NaN;
+      let posMo = isFinite(mo) ? Math.max(0, Math.min(1, (MOIST_MAX_BAD - mo) / (MOIST_MAX_BAD - MOIST_MIN_FAST))) : NaN;
+      if (isFinite(cv)) markerCv.style.left = (posCv*100) + "%";
+      if (isFinite(mo)) markerMo.style.left = (posMo*100) + "%";
+
+      const text = autoComment(cv, mo);
+      comment.textContent = text;
+
+      onChange({cushion: isFinite(cv)?cv:undefined, moisture: isFinite(mo)?mo:undefined, comment:text});
+    }
+    inCv.addEventListener("input", update);
+    inMo.addEventListener("input", update);
+    update();
+
+    return card;
+  }
+
+  const list = document.getElementById("list");
+  let store = load();
+  const refs = {};
+  const grid = document.createElement("div");
+  grid.className = "grid g-2";
+  list.appendChild(grid);
+
+  tracks.forEach(t=>{
+    const v = store[t] || {};
+    const card = createTrackCard(t, v, (row)=>{ store[t] = row; save(store); });
+    refs[t] = card;
+    grid.appendChild(card);
+  });
+
+  document.getElementById("btnExport").addEventListener("click", ()=>{
+    const csv = toCsv(store);
+    const blob = new Blob([csv], {type:"text/csv"});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a"); a.href=url; a.download="jra_track_conditions.csv"; a.click();
+    URL.revokeObjectURL(url);
+  });
+  document.getElementById("fileCsv").addEventListener("change", (e)=>{
+    const f = e.target.files[0]; if (!f) return;
+    const fr = new FileReader();
+    fr.onload = ()=>{
+      try{
+        store = fromCsv(String(fr.result));
+        save(store);
+        grid.innerHTML = "";
+        tracks.forEach(t=>{
+          const v = store[t] || {};
+          const card = createTrackCard(t, v, (row)=>{ store[t] = row; save(store); });
+          grid.appendChild(card);
+        });
+        alert("CSVを読み込みました");
+      }catch(err){
+        alert("CSV読み込みエラー: "+err);
+      }
+      e.target.value = "";
+    };
+    fr.readAsText(f);
+  });
+  document.getElementById("btnClear").addEventListener("click", ()=>{
+    if (!confirm("全ての入力を削除しますか？")) return;
+    store = {}; save(store);
+    grid.innerHTML = "";
+    tracks.forEach(t=>{
+      const card = createTrackCard(t, {}, (row)=>{ store[t] = row; save(store); });
+      grid.appendChild(card);
+    });
+  });
+})();
+</script>
+</body>
+</html>
