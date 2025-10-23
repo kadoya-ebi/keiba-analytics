@@ -4,22 +4,30 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>競馬アナリティクス</title>
 <style>
-  :root{--bg:#f7f7f9;--card:#fff;--border:#e5e7eb;--text:#111}
-  body{margin:0;background:linear-gradient(#fafafa,#f3f4f6);font-family:system-ui,"Noto Sans JP",sans-serif;color:var(--text)}
-  .wrap{max-width:720px;margin:0 auto;padding:36px 16px 80px;text-align:center}
-  h1{font-size:20px;margin:0 0 16px}
-  p{margin:4px 0 18px;color:#667085}
-  a.btn{display:block;margin:10px 0;padding:16px 18px;border:1px solid var(--border);border-radius:14px;
-        text-decoration:none;color:var(--text);font-weight:700}
-  a.btn:hover{background:#111;color:#fff;border-color:#111}
-  .small{font-size:12px;color:#8a8f98;margin-top:22px}
+  :root{--b:#e5e7eb;--t:#111}
+  body{margin:0;font-family:system-ui,"Noto Sans JP",sans-serif;background:#fafafa;color:var(--t)}
+  .wrap{max-width:1080px;margin:0 auto;padding:10px}
+  h1{font-size:20px;margin:0 0 8px}
+  .tabs{display:flex;gap:6px;border-bottom:1px solid var(--b);margin-bottom:10px}
+  .tab{padding:10px 14px;border:1px solid var(--b);border-bottom:none;border-radius:12px 12px 0 0;background:#fff;cursor:pointer}
+  .tab.active{background:#111;color:#fff;border-color:#111}
+  iframe{width:100%;height:calc(100vh - 110px);border:1px solid var(--b);border-radius:12px;background:#fff}
+  .note{font-size:12px;color:#666;margin:6px 2px}
 </style>
 <div class="wrap">
-  <h1>競馬アナリティクス（自分用）</h1>
-  <p>使いたい機能を選んでください。</p>
-
-  <a class="btn" href="./index_cascade_plus.html?v=1">コース別 早見表（拡張）</a>
-  <a class="btn" href="./index_track_condition.html?v=1">馬場コンディション（CV/含水）</a>
-
-  <div class="small">GitHub Pages / main / root</div>
+  <h1>競馬アナリティクス（タブ版）</h1>
+  <div class="tabs">
+    <div class="tab active" data-src="index_cascade_plus.html">① 早見表</div>
+    <div class="tab" data-src="index_track_condition.html">② 馬場コンディション</div>
+  </div>
+  <div class="note">※ 各タブは同リポジトリ内HTMLを読み込みます（index_cascade_plus.html / index_track_condition.html）</div>
+  <iframe id="viewer" src="index_cascade_plus.html" loading="lazy" title="viewer"></iframe>
 </div>
+<script>
+const tabs=[...document.querySelectorAll('.tab')], v=document.getElementById('viewer');
+tabs.forEach(t=>t.addEventListener('click',()=>{
+  tabs.forEach(x=>x.classList.remove('active'));
+  t.classList.add('active');
+  v.src=t.dataset.src;
+}));
+</script>
