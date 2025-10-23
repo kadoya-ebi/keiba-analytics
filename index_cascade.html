@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>競馬 早見表（コース→馬場→距離）v0.3</title>
+<style>
+  :root{--bg:#f7f7f9;--card:#ffffff;--border:#e6e6ec;--text:#111;--muted:#666}
+  body{margin:0;background:linear-gradient(#fafafa,#f3f4f6);font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,"Noto Sans JP","Hiragino Kaku Gothic ProN",Meiryo,sans-serif;color:var(--text)}
+  .wrap{max-width:1040px;margin:0 auto;padding:16px 16px 64px}
+  h1{font-size:20px;margin:0 0 8px}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:16px;box-shadow:0 4px 12px rgba(0,0,0,.03);padding:16px;margin:12px 0}
+  .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  .muted{color:#6b7280;font-size:12px}
+  button{font:inherit;cursor:pointer;border:1px solid var(--border);background:#fff;border-radius:999px;padding:8px 14px}
+  button.primary{background:#111;color:#fff;border-color:#111}
+  button.ghost{background:transparent}
+  .seg{display:flex;gap:8px;flex-wrap:wrap}
+  .seg button.active{background:#111;color:#fff;border-color:#111}
+  .grid{display:grid;gap:8px}
+  .g-2{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .g-3{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .stat{border:1px solid var(--border);border-radius:16px;padding:12px;background:#fff}
+  .stat h3{font-size:12px;margin:0 0 6px;color:#555}
+  .stat .v{font-size:20px;font-weight:700}
+  .right{text-align:right}
+  table{width:100%;border-collapse:collapse}
+  thead th{position:sticky;top:0;background:#f7f7fb;border-bottom:1px solid var(--border);text-align:left;font-weight:600;padding:10px}
+  tbody td{border-top:1px solid var(--border);padding:10px;font-size:14px}
+  .badge{display:inline-flex;align-items:center;justify-content:center;min-width:28px;padding:2px 8px;border-radius:999px;font-size:12px;font-weight:700;border:1px solid var(--border)}
+  .pace-H{background:#fef3c7}
+  .pace-M{background:#e5f4ff}
+  .pace-S{background:#e7fbe7}
+  .cv-hard{background:#e6f0ff}
+  .cv-mid{background:#eef7ec}
+  .cv-soft{background:#fff1e6}
+  .moist-dry{background:#e6f0ff}
+  .moist-mid{background:#eef7ec}
+  .moist-wet{background:#fff1e6}
+  .toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:space-between}
+  .hidden{display:none}
+  input,select{padding:10px;border:1px solid var(--border);border-radius:12px;background:#fff}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>競馬 早見表（コース → 馬場 → 距離）</h1>
+  <div class="card">
+    <div class="toolbar">
+      <div class="row">
+        <button id="btnExport">CSV書き出し</button>
+        <label><span style="padding:8px 14px;border:1px solid var(--border);border-radius:999px;background:#fff;cursor:pointer;display:inline-block">CSV読み込み<input id="fileCsv" type="file" accept=".csv,text/csv" style="display:none"></span></label>
+        <button id="btnClear">全消去</button>
+      </div>
+      <div class="muted">列：date,track,surface,distance,pass,last3f,cushion,moisture,going,course</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div><strong>1) コースを選ぶ</strong></div>
+    <div class="seg" id="segTrack"></div>
+    <div style="height:6px"></div>
+    <div><strong>2) 馬場を選ぶ</strong></div>
+    <div class="seg" id="segSurface">
+      <button data-surface="芝">芝</button>
+      <button data-surface="ダ">ダート</button>
+    </div>
+    <div style="height:6px"></div>
+    <div><strong>3) 距離を選ぶ</strong></div>
+    <div class="seg" id="segDistance"></div>
+    <div class="muted">基準通過：1000〜1200→600m、1400〜1600→800m、1800以上→1000m</div>
+  </div>
+
+  <div id="panel" class="card hidden">
+    <div class="row" style="justify-content:space-between;align-items:center">
+      <strong id="panelTitle">—</strong>
+      <div class="muted" id="panelCount">—</div>
+    </div>
+    <div class="grid g-3" style="margin-top:8px">
+      <div class="stat"><h3>平均 通過</h3><div class="v" id="avgPass">—</div></div>
+      <div class="stat"><h3>平均 上がり3F</h3><div class="v" id="avgLast3f">—</div></div>
+      <div class="stat"><h3>平均 クッション</h3><div class="v" id="avgCv">—</div></div>
+      <div class="stat"><h3>平均 含水率(%)</h3><div class="v" id="avgMoist">—</div></div>
+      <div class="stat"><h3>Pace 判定</h3><div class="v" id="paceBadge">—</div></div>
+      <div class="stat"><h3>基準ラベル</h3><div class="v" id="baseLabel">—</div></div>
+    </div>
+  </div>
+
+  <details class="card">
+    <summary><strong>明細（選択中の条件）</strong></summary>
+    <div style="overflow:auto;border:1px solid var(--border);border-radius:12px;margin-top:8px">
+      <table id="tbl">
+        <thead>
+          <tr><th>日付</th><th>場</th><th>馬場</th><th class="right">距離</th><th>基準</th><th class="right">通過</th><th class="right">上がり3F</th><th class="right">CV</th><th class="right">含水率</th><th>状態</th><th>コース</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </details>
+
+  <div class="card">
+    <details>
+      <summary><strong>手入力（任意）</strong></summary>
+      <div class="row" style="margin-top:8px">
+        <input id="inDate" placeholder="日付 2025-10-23">
+        <input id="inTrack" placeholder="競馬場">
+        <select id="inSurface"><option>芝</option><option>ダ</option></select>
+        <input id="inDistance" type="number" placeholder="距離(m)">
+        <input id="inPass" type="number" step="0.01" placeholder="通過(秒)">
+        <input id="inLast3f" type="number" step="0.01" placeholder="上がり3F(秒)">
+        <input id="inCv" type="number" step="0.1" placeholder="クッション">
+        <input id="inMoist" type="number" step="0.1" placeholder="含水率(%)">
+        <input id="inGoing" placeholder="状態 例: 良/稍/重">
+        <input id="inCourse" placeholder="コース 例: A/内/外">
+        <button id="btnAdd" class="primary">追加</button>
+      </div>
+    </details>
+  </div>
+
+</div>
+
+<script>
+(function(){
+  const tracks = ["札幌","函館","福島","新潟","東京","中山","中京","京都","阪神","小倉"];
+  const distances = [1000,1100,1200,1300,1400,1500,1600,1700,1800,1900,2000,2100,2200,2300,2400,2500,3000];
+  const lsKey = "keiba_cascade_rows_v03";
+
+  const $ = (q, el=document)=> el.querySelector(q);
+  const $$ = (q, el=document)=> Array.from(el.querySelectorAll(q));
+  function load(){ try{ return JSON.parse(localStorage.getItem(lsKey))||[] }catch{ return [] } }
+  function save(rows){ localStorage.setItem(lsKey, JSON.stringify(rows)); }
+  function fmt(n, d=1){ return (n===undefined||n===null||!isFinite(n)) ? "—" : Number(n).toFixed(d); }
+  function baseLabel(d){ if (!d) return ""; if (d<=1200) return "600m"; if (d<=1600) return "800m"; return "1000m"; }
+  function cvClass(v){ if (!isFinite(v)) return ""; if (v>=9.5) return "cv-hard"; if (v>=8.0) return "cv-mid"; return "cv-soft"; }
+  function moistClass(v){ if (!isFinite(v)) return ""; if (v<=10) return "moist-dry"; if (v<=13) return "moist-mid"; return "moist-wet"; }
+  function paceBadge(delta){ if (!isFinite(delta)) return ["—",""]; if (delta<-0.3) return ["H","pace-H"]; if (delta>0.3) return ["S","pace-S"]; return ["M","pace-M"]; }
+
+  let rows = load();
+
+  // Build track buttons
+  const segTrack = $("#segTrack");
+  tracks.forEach(t=>{
+    const b = document.createElement("button"); b.textContent = t; b.dataset.track = t;
+    b.addEventListener("click", ()=>{ $$("#segTrack button").forEach(x=>x.classList.remove("active")); b.classList.add("active"); state.track=t; renderDistances(); updatePanel(); });
+    segTrack.appendChild(b);
+  });
+
+  // Surface buttons
+  const segSurface = $("#segSurface");
+  $$("#segSurface button").forEach(b=>{
+    b.addEventListener("click", ()=>{ $$("#segSurface button").forEach(x=>x.classList.remove("active")); b.classList.add("active"); state.surface = b.dataset.surface; renderDistances(); updatePanel(); });
+  });
+
+  // Distances (contextual)
+  const segDistance = $("#segDistance");
+  function renderDistances(){
+    segDistance.innerHTML = "";
+    const dlist = distances; // could filter per surface/track later
+    dlist.forEach(d=>{
+      const b = document.createElement("button"); b.textContent = d; b.dataset.distance = String(d);
+      b.addEventListener("click", ()=>{ $$("#segDistance button").forEach(x=>x.classList.remove("active")); b.classList.add("active"); state.distance = Number(d); updatePanel(); });
+      segDistance.appendChild(b);
+    });
+  }
+  renderDistances();
+
+  const state = { track:null, surface:null, distance:null };
+
+  function filtered(){
+    return rows.filter(r=>{
+      if (state.track && r.track!==state.track) return false;
+      if (state.surface && r.surface!==state.surface) return false;
+      if (state.distance && Number(r.distance)!==Number(state.distance)) return false;
+      return true;
+    });
+  }
+
+  function updatePanel(){
+    const arr = filtered();
+    const panel = $("#panel");
+    if (!state.track || !state.surface || !state.distance){ panel.classList.add("hidden"); return; }
+    panel.classList.remove("hidden");
+    $("#panelTitle").textContent = `${state.track}・${state.surface}・${state.distance}m`;
+    $("#panelCount").textContent = `${arr.length} 件`;
+
+    const base = baseLabel(state.distance);
+    $("#baseLabel").textContent = base || "—";
+
+    if (arr.length===0){
+      $("#avgPass").textContent="—";
+      $("#avgLast3f").textContent="—";
+      $("#avgCv").textContent="—";
+      $("#avgMoist").textContent="—";
+      $("#paceBadge").textContent="—";
+    }else{
+      // aggregates
+      const nums = (key)=> arr.map(x=> x[key]).filter(v=> isFinite(v));
+      const avg = (a)=> a.length? a.reduce((s,v)=>s+v,0)/a.length : NaN;
+      const passAvg = avg(nums("pass"));
+      const lastAvg = avg(nums("last3f"));
+      const cvAvg = avg(nums("cushion"));
+      const moistAvg = avg(nums("moisture"));
+      $("#avgPass").textContent = fmt(passAvg);
+      $("#avgLast3f").textContent = fmt(lastAvg);
+      $("#avgCv").textContent = fmt(cvAvg);
+      const moistEl = $("#avgMoist");
+      moistEl.textContent = fmt(moistAvg);
+      moistEl.className = "v"; // reset
+      if (isFinite(moistAvg)) moistEl.parentElement.className = "stat "+moistClass(moistAvg); else moistEl.parentElement.className = "stat";
+
+      // pace badge
+      let delta;
+      if (isFinite(passAvg) && isFinite(lastAvg)){
+        const baseMeters = base==="600m"?600: base==="800m"?800:1000;
+        const firstPerF = passAvg/(baseMeters/200);
+        const lastPerF = lastAvg/3;
+        delta = lastPerF - firstPerF;
+      }
+      const [lab, cls] = paceBadge(delta);
+      $("#paceBadge").innerHTML = `<span class="badge ${cls}">${lab}</span>`;
+    }
+
+    // Detail table
+    const tbody = $("#tbl tbody"); tbody.innerHTML = "";
+    arr.slice(0,200).forEach(r=>{
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${r.date||""}</td>
+        <td>${r.track||""}</td>
+        <td>${r.surface||""}</td>
+        <td class="right">${r.distance||""}</td>
+        <td>${baseLabel(Number(r.distance)||0)}</td>
+        <td class="right">${fmt(r.pass)}</td>
+        <td class="right">${fmt(r.last3f)}</td>
+        <td class="right"><span class="badge">${fmt(r.cushion)}</span></td>
+        <td class="right"><span class="badge">${fmt(r.moisture)}</span></td>
+        <td>${r.going||""}</td>
+        <td>${r.course||""}</td>`;
+      tbody.appendChild(tr);
+    });
+  }
+
+  // CSV import/export
+  $("#btnExport").addEventListener("click", ()=>{
+    const header = ["date","track","surface","distance","pass","last3f","cushion","moisture","going","course"];
+    const lines = [header.join(",")].concat(rows.map(r=> header.map(k=> r[k]??"").join(",")));
+    const blob = new Blob([lines.join("\n")], {type:"text/csv"});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a"); a.href=url; a.download="keiba_cascade.csv"; a.click();
+    URL.revokeObjectURL(url);
+  });
+  $("#fileCsv").addEventListener("change", (e)=>{
+    const file = e.target.files[0]; if (!file) return;
+    const fr = new FileReader();
+    fr.onload = ()=>{
+      try{
+        const text = String(fr.result);
+        const lines = text.split(/\r?\n/).filter(Boolean);
+        const head = lines[0].split(",");
+        const idx = (k)=> head.indexOf(k);
+        const toNum = (v)=> { const n = Number(v); return isFinite(n) ? n : undefined; };
+        const recs = lines.slice(1).map(line=>{
+          const c = line.split(",");
+          return {
+            date: c[idx("date")]||"",
+            track: c[idx("track")]||"",
+            surface: c[idx("surface")]||"",
+            distance: toNum(c[idx("distance")]),
+            pass: toNum(c[idx("pass")]),
+            last3f: toNum(c[idx("last3f")]),
+            cushion: toNum(c[idx("cushion")]),
+            moisture: toNum(c[idx("moisture")]),
+            going: c[idx("going")]||"",
+            course: c[idx("course")]||"",
+          };
+        }).filter(r=> r.track && r.surface && r.distance);
+        rows = [...recs]; // replace (早見表なので差し替え運用)
+        save(rows);
+        updatePanel();
+        alert("CSVを読み込みました。条件を選んで表示してください。");
+      }catch(err){ alert("CSV読み込みでエラー："+err); }
+    };
+    fr.readAsText(file);
+    e.target.value="";
+  });
+
+  $("#btnClear").addEventListener("click", ()=>{
+    if (confirm("全データを削除しますか？")){ rows = []; save(rows); updatePanel(); }
+  });
+
+  // Add manual row
+  $("#btnAdd").addEventListener("click", ()=>{
+    const rec = {
+      date: $("#inDate").value.trim(),
+      track: $("#inTrack").value.trim(),
+      surface: $("#inSurface").value,
+      distance: Number($("#inDistance").value)||undefined,
+      pass: $("#inPass").value===""? undefined : Number($("#inPass").value),
+      last3f: $("#inLast3f").value===""? undefined : Number($("#inLast3f").value),
+      cushion: $("#inCv").value===""? undefined : Number($("#inCv").value),
+      moisture: $("#inMoist").value===""? undefined : Number($("#inMoist").value),
+      going: $("#inGoing").value.trim(),
+      course: $("#inCourse").value.trim(),
+    };
+    if (!rec.track || !rec.surface || !rec.distance){ alert("場・馬場・距離は必須"); return; }
+    rows = [rec, ...rows];
+    save(rows);
+    ["inDate","inTrack","inDistance","inPass","inLast3f","inCv","inMoist","inGoing","inCourse"].forEach(id=> $("#"+id).value="");
+    updatePanel();
+    alert("追加しました");
+  });
+
+  // default: select first track/surface/distance for UX
+  $$("#segTrack button")[0]?.click();
+  $$("#segSurface button")[0]?.click();
+  $$("#segDistance button")[0]?.click();
+})();
+</script>
+</body>
+</html>
