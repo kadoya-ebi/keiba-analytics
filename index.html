@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>競馬アナリティクス（基準通過＋上がり3F＋クッション値）v0.1</title>
+<style>
+  :root{--bg:#f7f7f9;--card:#ffffff;--border:#e6e6ec;--text:#111;--muted:#666}
+  body{margin:0;background:linear-gradient(#fafafa,#f3f4f6);font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,"Noto Sans JP","Hiragino Kaku Gothic ProN",Meiryo,sans-serif;color:var(--text)}
+  .wrap{max-width:1000px;margin:0 auto;padding:16px 16px 48px}
+  .header{display:flex;justify-content:space-between;align-items:center;margin:8px 0 16px}
+  h1{font-size:20px;margin:0}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:16px;box-shadow:0 4px 12px rgba(0,0,0,.03);padding:16px;margin-bottom:12px}
+  .grid{display:grid;gap:8px}
+  .g-6{grid-template-columns:repeat(6,minmax(0,1fr))}
+  .g-5{grid-template-columns:repeat(5,minmax(0,1fr))}
+  .g-4{grid-template-columns:repeat(4,minmax(0,1fr))}
+  .g-3{grid-template-columns:repeat(3,minmax(0,1fr))}
+  input,select,button{font:inherit}
+  input,select{width:100%;padding:10px;border:1px solid var(--border);border-radius:12px;background:#fff;box-sizing:border-box}
+  .btn{padding:10px 14px;border:1px solid var(--border);border-radius:12px;background:#fff;cursor:pointer}
+  .btn.primary{background:#111;color:#fff;border-color:#111}
+  .muted{color:var(--muted);font-size:12px}
+  table{width:100%;border-collapse:collapse}
+  thead th{position:sticky;top:0;background:#f7f7fb;border-bottom:1px solid var(--border);text-align:left;font-weight:600;padding:10px}
+  tbody td{border-top:1px solid var(--border);padding:10px;font-size:14px}
+  .right{text-align:right}
+  .badge{display:inline-flex;align-items:center;justify-content:center;min-width:28px;padding:2px 8px;border-radius:999px;font-size:12px;font-weight:700;border:1px solid var(--border)}
+  .pace-H{background:#fef3c7}
+  .pace-M{background:#e5f4ff}
+  .pace-S{background:#e7fbe7}
+  .cv-hard{background:#e6f0ff}
+  .cv-mid{background:#eef7ec}
+  .cv-soft{background:#fff1e6}
+  details summary{cursor:pointer}
+  .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  .tiny{font-size:11px;color:#777}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="header">
+    <h1>競馬アナリティクス（自分用β）</h1>
+    <div class="tiny">ローカル保存 / v0.1</div>
+  </div>
+
+  <div class="card">
+    <div class="row" style="justify-content:space-between">
+      <strong>入力（1レース=1行）</strong>
+      <div class="row">
+        <button class="btn" id="exportCsv">CSV書き出し</button>
+        <label class="btn">CSV読み込み<input id="importCsv" type="file" accept=".csv,text/csv" style="display:none"></label>
+        <button class="btn" id="clearAll">全消去</button>
+      </div>
+    </div>
+    <div class="grid g-6" style="margin-top:8px">
+      <input id="date" placeholder="日付 2025-10-23">
+      <input id="track" placeholder="競馬場（東京/中山/京都…）">
+      <select id="surface"><option>芝</option><option>ダ</option></select>
+      <input id="distance" type="number" placeholder="距離(m) 例:1600" value="1600">
+      <input id="pass" type="number" step="0.01" placeholder="基準通過(秒) 例: 59.3">
+      <input id="last3f" type="number" step="0.01" placeholder="上がり3F(秒) 例: 34.8">
+    </div>
+    <div class="grid g-5" style="margin-top:8px">
+      <input id="cushion" type="number" step="0.1" placeholder="クッション値 例: 8.8">
+      <input id="going" placeholder="馬場/天候 例: 良/稍/重">
+      <input id="course" placeholder="コース 例: A/内/外">
+      <div class="row">
+        <span class="tiny">距離プリセット:</span>
+        <button class="btn" data-d="1200">1200</button>
+        <button class="btn" data-d="1400">1400</button>
+        <button class="btn" data-d="1600">1600</button>
+        <button class="btn" data-d="1800">1800</button>
+        <button class="btn" data-d="2000">2000</button>
+      </div>
+      <button class="btn primary" id="addRow">追加</button>
+    </div>
+    <div class="muted" style="margin-top:6px">基準通過の目安：1200m以下→600m、1400〜1600m→800m、1800m以上→1000m（本ツールの表示は距離から自動ラベル化）</div>
+  </div>
+
+  <div class="card">
+    <div class="row" style="justify-content:space-between">
+      <strong>集計フィルター</strong>
+      <div class="row">
+        <label class="tiny">馬場
+          <select id="fSurface"><option>すべて</option><option>芝</option><option>ダ</option></select>
+        </label>
+        <label class="tiny">開催月
+          <select id="fMonth"><option>すべて</option></select>
+        </label>
+        <label class="tiny">馬場状態
+          <select id="fGoing"><option>すべて</option><option>良</option><option>稍</option><option>重</option><option>不</option></select>
+        </label>
+      </div>
+    </div>
+    <div style="overflow:auto;max-height:55vh;border:1px solid var(--border);border-radius:12px;margin-top:8px">
+      <table id="aggTable">
+        <thead>
+          <tr>
+            <th>競馬場</th>
+            <th>馬場</th>
+            <th>距離帯</th>
+            <th>基準</th>
+            <th class="right">件数(通過)</th>
+            <th class="right">平均通過</th>
+            <th class="right">最速</th>
+            <th class="right">最遅</th>
+            <th class="right">件数(上がり)</th>
+            <th class="right">平均上がり3F</th>
+            <th class="right">件数(CV)</th>
+            <th class="right">平均CV</th>
+            <th class="right">Pace</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <div class="tiny" style="margin-top:8px">Pace判定は簡易指標。平均上がり（/200m換算）と前半平均（/200m）の差で H/M/S を付与。</div>
+  </div>
+
+  <details class="card">
+    <summary><strong>明細（最新100件）</strong></summary>
+    <div style="overflow:auto;border:1px solid var(--border);border-radius:12px;margin-top:8px">
+      <table id="detailTable">
+        <thead>
+          <tr>
+            <th>日付</th><th>場</th><th>馬場</th><th class="right">距離</th><th>基準</th><th class="right">通過</th><th class="right">上がり3F</th><th class="right">CV</th><th>状態</th><th>コース</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </details>
+
+  <div class="muted">保存先：ブラウザのローカルストレージ。CSV列：date,track,surface,distance,pass,last3f,cushion,going,course</div>
+</div>
+
+<script>
+(function(){
+  const $ = (q, el=document)=> el.querySelector(q);
+  const $$ = (q, el=document)=> Array.from(el.querySelectorAll(q));
+  const lsKey = "keiba_analytics_rows_v01";
+
+  const months = ["すべて"].concat(Array.from({length:12},(_,i)=> String(i+1).padStart(2,'0')));
+  const fMonth = $("#fMonth");
+  months.forEach(m=>{ const o=document.createElement('option'); o.textContent=m; o.value=m; fMonth.appendChild(o); });
+
+  function load(){
+    try{ return JSON.parse(localStorage.getItem(lsKey))||[] }catch{ return [] }
+  }
+  function save(rows){ localStorage.setItem(lsKey, JSON.stringify(rows)); }
+
+  let rows = load();
+
+  function baselineLabel(distance){
+    if (!distance) return "";
+    if (distance <= 1200) return "600m";
+    if (distance <= 1600) return "800m";
+    return "1000m";
+  }
+  function distanceBand(distance){
+    if (!distance) return "";
+    if (distance <= 1400) return "〜1400";
+    if (distance <= 1800) return "1600〜1800";
+    if (distance <= 2200) return "2000〜2200";
+    return "2400〜";
+  }
+  function monthOf(date){
+    if (!date) return "";
+    const t = new Date(date);
+    const m = isNaN(t) ? NaN : (t.getMonth()+1);
+    return isFinite(m) ? String(m).padStart(2,'0') : "";
+  }
+  function fmt(n, d=1){
+    if (n===undefined || n===null || !isFinite(n)) return "—";
+    return Number(n).toFixed(d);
+  }
+  function cvClass(v){
+    if (!isFinite(v)) return "";
+    if (v >= 9.5) return "cv-hard";
+    if (v >= 8.0) return "cv-mid";
+    return "cv-soft";
+  }
+  function paceBadge(delta){ // last perF - first perF
+    if (!isFinite(delta)) return "";
+    if (delta < -0.3) return ["H","pace-H"];
+    if (delta > 0.3) return ["S","pace-S"];
+    return ["M","pace-M"];
+  }
+
+  function applyFilters(r){
+    const s = $("#fSurface").value;
+    const m = $("#fMonth").value;
+    const g = $("#fGoing").value;
+    if (s !== "すべて" && r.surface !== s) return false;
+    if (m !== "すべて" && monthOf(r.date) !== m) return false;
+    if (g !== "すべて" && (r.going||"") !== g) return false;
+    return true;
+  }
+
+  function renderAgg(){
+    const tbody = $("#aggTable tbody");
+    tbody.innerHTML = "";
+    const map = new Map();
+    const filtered = rows.filter(applyFilters);
+    for (const r of filtered){
+      const key = [r.track||"", r.surface||"", distanceBand(Number(r.distance)||0), baselineLabel(Number(r.distance)||0)].join("__");
+      let v = map.get(key);
+      if (!v){
+        v = { track:r.track||"", surface:r.surface||"", band:distanceBand(Number(r.distance)||0), base:baselineLabel(Number(r.distance)||0),
+          pc:0, ps:0, pmin:Infinity, pmax:-Infinity,
+          lc:0, ls:0, lmin:Infinity, lmax:-Infinity,
+          cc:0, cs:0
+        };
+        map.set(key, v);
+      }
+      if (isFinite(r.pass)){ v.pc++; v.ps += r.pass; v.pmin = Math.min(v.pmin, r.pass); v.pmax = Math.max(v.pmax, r.pass); }
+      if (isFinite(r.last3f)){ v.lc++; v.ls += r.last3f; v.lmin = Math.min(v.lmin, r.last3f); v.lmax = Math.max(v.lmax, r.last3f); }
+      if (isFinite(r.cushion)){ v.cc++; v.cs += r.cushion; }
+    }
+    const arr = Array.from(map.values()).sort((a,b)=> (a.track.localeCompare(b.track,"ja")||a.surface.localeCompare(b.surface,"ja")));
+    for (const g of arr){
+      // simple pace delta: compare per-200m avg (pass / (base/200)) vs last3f/3
+      let delta;
+      if (isFinite(g.ps) && g.pc>0 && g.lc>0){
+        const passAvg = g.ps/g.pc;
+        const baseMeters = g.base==="600m"?600:g.base==="800m"?800:1000;
+        const firstPerF = passAvg/(baseMeters/200);
+        const lastPerF = (g.ls/g.lc)/3;
+        delta = lastPerF - firstPerF;
+      }
+      const [pLabel,pClass] = paceBadge(delta)||[];
+
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${g.track}</td>
+        <td>${g.surface}</td>
+        <td>${g.band}</td>
+        <td>${g.base}</td>
+        <td class="right">${g.pc}</td>
+        <td class="right">${fmt(g.pc? g.ps/g.pc : NaN, 1)}</td>
+        <td class="right">${fmt(g.pmin,1)}</td>
+        <td class="right">${fmt(g.pmax,1)}</td>
+        <td class="right">${g.lc}</td>
+        <td class="right">${fmt(g.lc? g.ls/g.lc : NaN, 1)}</td>
+        <td class="right">${g.cc}</td>
+        <td class="right">${fmt(g.cc? g.cs/g.cc : NaN, 1)}</td>
+        <td class="right">${pLabel? `<span class="badge ${pClass}">${pLabel}</span>` : ""}</td>
+      `;
+      tbody.appendChild(tr);
+    }
+  }
+
+  function renderDetail(){
+    const tbody = $("#detailTable tbody");
+    tbody.innerHTML = "";
+    const filtered = rows.filter(applyFilters).slice(0,100);
+    for (const r of filtered){
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${r.date||""}</td>
+        <td>${r.track||""}</td>
+        <td>${r.surface||""}</td>
+        <td class="right">${r.distance||""}</td>
+        <td>${baselineLabel(Number(r.distance)||0)}</td>
+        <td class="right">${fmt(r.pass,1)}</td>
+        <td class="right">${fmt(r.last3f,1)}</td>
+        <td class="right"><span class="badge ${cvClass(r.cushion)}">${fmt(r.cushion,1)}</span></td>
+        <td>${r.going||""}</td>
+        <td>${r.course||""}</td>
+      `;
+      tbody.appendChild(tr);
+    }
+  }
+
+  function refresh(){ renderAgg(); renderDetail(); save(rows); }
+
+  // Add handlers
+  $("#addRow").addEventListener("click", ()=>{
+    const rec = {
+      date: $("#date").value.trim(),
+      track: $("#track").value.trim(),
+      surface: $("#surface").value,
+      distance: Number($("#distance").value)||undefined,
+      pass: $("#pass").value===""? undefined : Number($("#pass").value),
+      last3f: $("#last3f").value===""? undefined : Number($("#last3f").value),
+      cushion: $("#cushion").value===""? undefined : Number($("#cushion").value),
+      going: $("#going").value.trim(),
+      course: $("#course").value.trim(),
+    };
+    rows = [rec, ...rows];
+    ["date","track","pass","last3f","cushion","going","course"].forEach(id=> $("#"+id).value="");
+    refresh();
+  });
+
+  document.querySelectorAll(".btn[data-d]").forEach(b=>{
+    b.addEventListener("click", ()=> { $("#distance").value = b.getAttribute("data-d"); });
+  });
+
+  // Filters
+  $("#fSurface").addEventListener("change", refresh);
+  $("#fMonth").addEventListener("change", refresh);
+  $("#fGoing").addEventListener("change", refresh);
+
+  // CSV
+  $("#exportCsv").addEventListener("click", ()=>{
+    const header = ["date","track","surface","distance","pass","last3f","cushion","going","course"];
+    const lines = [header.join(",")].concat(rows.map(r=> header.map(k=> (r[k]??"")).join(",")));
+    const blob = new Blob([lines.join("\n")], {type:"text/csv"});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a"); a.href=url; a.download="keiba_analytics.csv"; a.click();
+    URL.revokeObjectURL(url);
+  });
+  $("#importCsv").addEventListener("change", (e)=>{
+    const file = e.target.files[0]; if (!file) return;
+    const fr = new FileReader();
+    fr.onload = ()=>{
+      try{
+        const text = String(fr.result);
+        const lines = text.split(/\r?\n/).filter(Boolean);
+        const head = lines[0].split(",");
+        const idx = (k)=> head.indexOf(k);
+        const toNum = (v)=> { const n = Number(v); return isFinite(n) ? n : undefined; };
+        const recs = lines.slice(1).map(line => {
+          const c = line.split(",");
+          return {
+            date: c[idx("date")]||"",
+            track: c[idx("track")]||"",
+            surface: c[idx("surface")]||"",
+            distance: toNum(c[idx("distance")]),
+            pass: toNum(c[idx("pass")]),
+            last3f: toNum(c[idx("last3f")]),
+            cushion: toNum(c[idx("cushion")]),
+            going: c[idx("going")]||"",
+            course: c[idx("course")]||"",
+          };
+        });
+        rows = [...recs, ...rows];
+        refresh();
+      }catch(err){ alert("CSV読み込みでエラー："+err); }
+    };
+    fr.readAsText(file);
+    e.target.value = "";
+  });
+
+  $("#clearAll").addEventListener("click", ()=>{
+    if (confirm("全データを削除しますか？")){ rows = []; refresh(); }
+  });
+
+  refresh();
+})();
+</script>
+</body>
+</html>
