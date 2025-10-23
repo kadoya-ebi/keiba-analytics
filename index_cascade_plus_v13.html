@@ -1,0 +1,433 @@
+
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>早見表 v1.3（内外レールのみ＋本日の馬場傾向バー）</title>
+<style>
+  :root{ --bg:#f7f7f9;--card:#fff;--border:#e5e7eb;--text:#111;--muted:#6b7280; --accent:#2e7d32; --tint:#e9f7ee; --tagbg:#eefaf0;}
+  body[data-surface="dirt"]{ --accent:#6d4c41; --tint:#f3e5dc; --tagbg:#f7eee8; }
+  body{margin:0;background:linear-gradient(#fafafa,#f3f4f6);font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,"Noto Sans JP","Noto Sans CJK JP","Hiragino Kaku Gothic ProN",Meiryo,sans-serif;color:var(--text)}
+  .wrap{max-width:1180px;margin:0 auto;padding:16px 16px 96px}
+  h1{font-size:20px;margin:0 0 10px}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:16px;box-shadow:0 4px 12px rgba(0,0,0,.03);padding:16px;margin:12px 0}
+  .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  .muted{color:var(--muted);font-size:12px}
+  button{font:inherit;cursor:pointer;border:1px solid var(--border);background:#fff;border-radius:999px;padding:8px 14px}
+  button.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+  input,select{padding:10px;border:1px solid var(--border);border-radius:12px;background:#fff}
+  .seg{display:flex;gap:8px;flex-wrap:wrap}
+  .seg button.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+  .grid{display:grid;gap:8px}
+  .g-3{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .stat{border:1px solid var(--border);border-radius:16px;padding:12px;background:linear-gradient(0deg,var(--tint),#fff 45%)}
+  .stat h3{font-size:12px;margin:0 0 6px;color:#555}
+  .stat .v{font-size:20px;font-weight:700}
+  .right{text-align:right}
+  table{width:100%;border-collapse:collapse}
+  thead th{position:sticky;top:0;background:#f7f7fb;border-bottom:2px solid var(--accent);text-align:left;font-weight:600;padding:10px}
+  tbody td{border-top:1px solid var(--border);padding:10px;font-size:14px}
+  tbody tr:nth-child(odd){background:var(--tint)}
+  .tag{display:inline-block;padding:2px 8px;border:1px solid var(--border);border-radius:999px;font-size:12px;margin-right:4px;background:var(--tagbg)}
+  .pill{display:inline-flex;align-items:center;gap:8px;background:var(--tint);border:1px solid var(--accent);color:var(--accent);padding:6px 10px;border-radius:999px;font-weight:700}
+  .feat{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
+  .feat .chip{border:1px solid var(--accent);color:var(--accent);background:#fff;border-radius:999px;padding:6px 10px;font-size:13px}
+  /* bars */
+  .bar{position:relative;height:16px;border-radius:999px;overflow:hidden;border:1px solid var(--border);background:#f0f0f0}
+  .bar .fill{position:absolute;top:0;left:0;bottom:0;background:linear-gradient(90deg,#a3e635,#facc15,#f97316,#ef4444)}
+  .bar .tick{position:absolute;top:-6px;width:2px;height:28px;background:#999;opacity:.6}
+  .legend{display:flex;justify-content:space-between;font-size:12px;color:#444;margin-top:6px}
+  .inline{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .mini{font-size:12px;padding:6px 10px;border-radius:10px;border:1px solid var(--border)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>早見表（コース→馬場→距離）</h1>
+
+  <div class="card">
+    <div class="row" style="justify-content:space-between">
+      <div class="row">
+        <button id="a_export">CSV書き出し</button>
+        <label><span style="padding:8px 14px;border:1px solid var(--border);border-radius:999px;background:#fff;cursor:pointer;display:inline-block">CSV読み込み<input id="a_import" type="file" accept=".csv,text/csv" style="display:none"></span></label>
+        <button id="a_clear">全消去</button>
+        <button id="a_sample">サンプル読込</button>
+      </div>
+      <div class="row">
+        <label class="muted">コース特徴CSV<input id="feat_import" type="file" accept=".csv,text/csv" style="display:inline-block;border:1px solid var(--border);border-radius:10px;padding:6px 10px;margin-left:6px"></label>
+        <label class="muted">馬場傾向CSV（本日）<input id="cond_import" type="file" accept=".csv,text/csv" style="display:inline-block;border:1px solid var(--border);border-radius:10px;padding:6px 10px;margin-left:6px"></label>
+      </div>
+    </div>
+    <div class="muted">レース行：date,track,surface,distance,pass,last3f,cushion,moisture,going,course ほか</div>
+  </div>
+
+  <div class="card">
+    <div class="row" style="justify-content:space-between;align-items:center">
+      <div style="min-width:280px">
+        <div><strong>1) コース</strong></div>
+        <div class="seg" id="segTrack"></div>
+      </div>
+      <div>
+        <span id="surfacePill" class="pill" style="display:none">—</span>
+      </div>
+    </div>
+    <div style="height:6px"></div>
+    <div><strong>2) 馬場</strong></div>
+    <div class="seg" id="segSurface">
+      <button data-surface="芝" class="active">芝</button>
+      <button data-surface="ダ">ダート</button>
+    </div>
+    <div style="height:6px"></div>
+
+    <div class="row" style="justify-content:space-between;align-items:flex-end">
+      <div><strong>3) 距離</strong> <span class="muted" id="distanceNote"></span></div>
+      <div class="row">
+        <label class="muted">内外/レール <select id="fVariant"><option value="">指定なし</option><option>内</option><option>外</option><option>A</option><option>B</option><option>C</option><option>D</option></select></label>
+      </div>
+    </div>
+    <div class="seg" id="segDistance"></div>
+    <div class="muted">基準通過：1000〜1200→600m、1400〜1600→800m、1800以上→1000m</div>
+  </div>
+
+  <div id="panel" class="card" style="display:none">
+    <div class="row" style="justify-content:space-between;align-items:center">
+      <strong id="title">—</strong>
+      <div class="muted" id="count">—</div>
+    </div>
+    <div class="grid g-3" style="margin-top:8px">
+      <div class="stat"><h3>平均 通過</h3><div class="v" id="avgPass">—</div></div>
+      <div class="stat"><h3>平均 上がり3F</h3><div class="v" id="avgLast3f">—</div></div>
+      <div class="stat"><h3>平均 クッション</h3><div class="v" id="avgCv">—</div></div>
+      <div class="stat"><h3>平均 含水率(%)</h3><div class="v" id="avgMoist">—</div></div>
+      <div class="stat"><h3>Pace 判定</h3><div class="v" id="pace">—</div></div>
+      <div class="stat"><h3>基準ラベル</h3><div class="v" id="base">—</div></div>
+    </div>
+
+    <div class="card" style="margin-top:12px">
+      <div class="row" style="justify-content:space-between;align-items:center">
+        <strong>コース特徴</strong>
+        <span class="muted" id="featSource">（内蔵/CSV）</span>
+      </div>
+      <div class="feat" id="featChips"></div>
+      <div class="muted" id="featNotes" style="margin-top:6px"></div>
+    </div>
+
+    <!-- 本日の馬場傾向 -->
+    <div class="card" style="margin-top:12px">
+      <div class="row" style="justify-content:space-between;align-items:center">
+        <strong>本日の馬場傾向（簡易メーター）</strong>
+        <div class="inline">
+          <span class="muted">入力:</span>
+          <input id="inCv" type="number" step="0.1" placeholder="CV" class="mini" style="width:80px">
+          <input id="inMo" type="number" step="0.1" placeholder="%水分" class="mini" style="width:90px">
+          <button id="applyCond">反映</button>
+        </div>
+      </div>
+      <div style="margin-top:8px">
+        <div class="row" style="gap:12px;align-items:center">
+          <div style="min-width:90px;font-weight:600">芝クッション</div>
+          <div class="bar" id="barCv" style="flex:1">
+            <div class="fill" style="width:0%"></div>
+            <div class="tick" style="left:0%"></div>
+            <div class="tick" style="left:25%"></div>
+            <div class="tick" style="left:50%"></div>
+            <div class="tick" style="left:75%"></div>
+            <div class="tick" style="left:100%"></div>
+          </div>
+          <div id="labCv" style="min-width:60px;text-align:right" class="muted">—</div>
+        </div>
+        <div class="legend"><span>柔らかめ</span><span>—</span><span>—</span><span>硬め</span></div>
+      </div>
+      <div style="margin-top:10px">
+        <div class="row" style="gap:12px;align-items:center">
+          <div style="min-width:90px;font-weight:600">含水率</div>
+          <div class="bar" id="barMo" style="flex:1">
+            <div class="fill" style="width:0%"></div>
+            <div class="tick" style="left:0%"></div>
+            <div class="tick" style="left:25%"></div>
+            <div class="tick" style="left:50%"></div>
+            <div class="tick" style="left:75%"></div>
+            <div class="tick" style="left:100%"></div>
+          </div>
+          <div id="labMo" style="min-width:60px;text-align:right" class="muted">—</div>
+        </div>
+        <div class="legend"><span>良</span><span>稍重</span><span>重</span><span>不良</span></div>
+      </div>
+      <div class="muted" style="margin-top:6px">※ しきい値は目安。CSV（馬場傾向）を読み込むと自動反映：date,track,surface,cushion,moisture</div>
+    </div>
+
+  </div>
+
+  <details class="card">
+    <summary><strong>明細（選択中の条件）</strong></summary>
+    <div style="overflow:auto;border:1px solid var(--border);border-radius:12px;margin-top:8px">
+      <table id="tbl">
+        <thead><tr><th>日付</th><th>場</th><th>馬場</th><th class="right">距離</th><th>基準</th><th>Variant</th><th class="right">通過</th><th class="right">上がり3F</th><th class="right">CV</th><th class="right">含水</th><th>状態</th><th>コース</th><th>特性</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </details>
+</div>
+
+<script>
+(function(){
+  const ls = "keiba_cascade_rows_v11";
+  const featLS = "keiba_course_features_v12";
+  const condLS = "keiba_today_condition_v13"; // { "東京|芝": {cushion:9.2, moisture:12.3, date:"2025-10-23"} }
+  const tracks = ["札幌","函館","福島","新潟","東京","中山","中京","京都","阪神","小倉"];
+  const $ = (q, el=document)=> el.querySelector(q);
+  const $$ = (q, el=document)=> Array.from(el.querySelectorAll(q));
+  function load(){ try{ return JSON.parse(localStorage.getItem(ls))||[] }catch{ return [] } }
+  function save(rows){ localStorage.setItem(ls, JSON.stringify(rows)); }
+  function fmt(n, d=1){ return (n===undefined||n===null||!isFinite(n)) ? "—" : Number(n).toFixed(d); }
+  function baseLabel(d){ if (!d) return ""; if (d<=1200) return "600m"; if (d<=1600) return "800m"; return "1000m"; }
+  function uniq(a){ return Array.from(new Set(a)); }
+
+  // 内蔵特徴（省略：v12aと同）
+  const builtInFeat = {};
+  ["札幌","函館","福島","新潟","東京","中山","中京","京都","阪神","小倉"].forEach(t=>{
+    builtInFeat[t] = {
+      "芝": {turn_dir: (t==="新潟"?"左回り":"右回り"), straight_len_m: {札幌:266,函館:262,福島:292,新潟:659,東京:526,中山:310,中京:412,京都:404,阪神:473,小倉:293}[t], straight_len: {札幌:"普通",函館:"普通",福島:"短い",新潟:"長い",東京:"長い",中山:"普通",中京:"普通",京都:"長い",阪神:"長い",小倉:"短い"}[t], elevation_diff_m: {札幌:0.7,函館:3.5,福島:1.9,新潟:2.2,東京:2.0,中山:5.3,中京:3.5,京都:4.3,阪神:1.8,小倉:2.8}[t], finish_slope: {札幌:"なし",函館:"あり",福島:"あり",新潟:"なし",東京:"あり",中山:"あり",中京:"あり",京都:"あり",阪神:"あり",小倉:"なし"}[t], slope_position: {札幌:"—",函館:"ゴール前",福島:"ゴール前",新潟:"—",東京:"ゴール前",中山:"ゴール前",中京:"ゴール前",京都:"ゴール前",阪神:"ゴール前",小倉:"—"}[t], course_shape:{札幌:"普通",函館:"普通",福島:"小回り",新潟:"大回り",東京:"大回り",中山:"小回り",中京:"普通",京都:"大回り",阪神:"大回り",小倉:"小回り"}[t], turf_start: "—", turf_start_note: "—", notes: (t==="新潟"?"芝1000は直線コース":"") },
+      "ダ": {turn_dir: (t==="新潟"?"左回り":"右回り"), straight_len_m: {札幌:266,函館:262,福島:292,新潟:659,東京:526,中山:310,中京:412,京都:404,阪神:473,小倉:293}[t], straight_len: {札幌:"短い",函館:"短い",福島:"短い",新潟:"普通",東京:"普通",中山:"短い",中京:"普通",京都:"普通",阪神:"普通",小倉:"短い"}[t], elevation_diff_m: {札幌:0.7,函館:3.5,福島:1.9,新潟:2.2,東京:2.0,中山:5.3,中京:3.5,京都:4.3,阪神:1.8,小倉:2.8}[t], finish_slope: {札幌:"なし",函館:"あり",福島:"あり",新潟:"なし",東京:"あり",中山:"あり",中京:"あり",京都:"あり",阪神:"あり",小倉:"なし"}[t], slope_position: {札幌:"—",函館:"ゴール前",福島:"ゴール前",新潟:"—",東京:"ゴール前",中山:"ゴール前",中京:"ゴール前",京都:"ゴール前",阪神:"ゴール前",小倉:"—"}[t], course_shape:{札幌:"普通",函館:"普通",福島:"小回り",新潟:"大回り",東京:"大回り",中山:"小回り",中京:"普通",京都:"大回り",阪神:"大回り",小倉:"小回り"}[t], turf_start: (t==="東京"?"1600":(t==="中京"?"1400":"無し")), turf_start_note: (t==="東京"?"ダ1600は芝スタート":(t==="中京"?"ダ1400は芝スタート":"無し")), notes: (t==="新潟"?"":"") }
+    };
+  });
+
+  function loadFeat(){ try{ return JSON.parse(localStorage.getItem(featLS))||null }catch{ return null } }
+  function saveFeat(obj){ localStorage.setItem(featLS, JSON.stringify(obj)); }
+  function loadCond(){ try{ return JSON.parse(localStorage.getItem(condLS))||{} }catch{ return {} } }
+  function saveCond(obj){ localStorage.setItem(condLS, JSON.stringify(obj)); }
+
+  let rows = load();
+  let feat = loadFeat();
+  let cond = loadCond();
+  const state = {track:null, surface:"芝", distance:null};
+
+  // UI build
+  const segT = document.getElementById("segTrack");
+  tracks.forEach(t=>{
+    const b=document.createElement("button"); b.textContent=t; b.dataset.track=t;
+    b.onclick=()=>{ $$("#segTrack button").forEach(x=>x.classList.remove("active")); b.classList.add("active"); state.track=t; renderDistances(); update(); };
+    segT.appendChild(b);
+  });
+
+  $$("#segSurface button").forEach(b=> b.onclick=()=>{
+    $$("#segSurface button").forEach(x=>x.classList.remove("active"));
+    b.classList.add("active");
+    state.surface=b.dataset.surface;
+    document.body.dataset.surface = (state.surface==="芝" ? "turf" : "dirt");
+    const pill=document.getElementById("surfacePill");
+    pill.style.display="inline-flex";
+    pill.textContent = (state.surface==="芝"?"芝（GREEN）":"ダート（BROWN）");
+    renderDistances(); update();
+  });
+
+  document.getElementById("fVariant").addEventListener("change", update);
+
+  function renderDistances(){
+    const seg=document.getElementById("segDistance"); seg.innerHTML="";
+    let ds=[];
+    if (state.track && state.surface){
+      ds = uniq(rows.filter(r=> r.track===state.track && r.surface===state.surface).map(r=> Number(r.distance)).filter(Boolean)).sort((a,b)=>a-b);
+      document.getElementById("distanceNote").textContent = ds.length? "（この場×馬場のCSV内の距離のみ表示）" : "（CSV未読込：代表的な距離を表示）";
+    }
+    if (ds.length===0){ ds=[1000,1100,1150,1200,1300,1400,1500,1600,1700,1800,1900,2000,2100,2200,2300,2400,2500,3000]; }
+    ds.forEach(d=>{
+      const b=document.createElement("button"); b.textContent=d; b.dataset.distance=d;
+      b.onclick=()=>{ $$("#segDistance button").forEach(x=>x.classList.remove("active")); b.classList.add("active"); state.distance=Number(d); update(); };
+      seg.appendChild(b);
+    });
+  }
+
+  function applyFilters(r){
+    const fV = document.getElementById("fVariant").value;
+    if (fV!=="" && (r.course_variant||"") !== fV) return false;
+    return true;
+  }
+
+  function filtered(){
+    return rows.filter(r=> (!state.track || r.track===state.track) && (!state.surface || r.surface===state.surface) && (!state.distance || Number(r.distance)===Number(state.distance)) && applyFilters(r));
+  }
+
+  function getFeat(track, surface){
+    if (feat){ const key = track + "|" + surface; if (feat[key]) return {...feat[key], _src:"CSV"}; }
+    return {...builtInFeat[track]?.[surface], _src:"内蔵"};
+  }
+
+  // today condition helpers
+  function setBar(barId, labelId, value, min, max, formatter){
+    const pct = Math.max(0, Math.min(100, (value-min) * 100 / (max-min)));
+    const bar = document.getElementById(barId).querySelector(".fill");
+    bar.style.width = pct + "%";
+    document.getElementById(labelId).textContent = formatter(value);
+  }
+  function labelMoist(val, surface){
+    if (!isFinite(val)) return "—";
+    // 目安：芝: 良<=10, 稍重<=15, 重<=20, 不良>20 / ダ: 良<=7, 稍重<=10, 重<=13, 不良>13 （ざっくり）
+    const t = surface==="芝" ? [10,15,20] : [7,10,13];
+    return (val<=t[0]?"良": val<=t[1]?"稍重": val<=t[2]?"重":"不良") + " " + val.toFixed(1) + "%";
+  }
+  function labelCv(val){ if (!isFinite(val)) return "—"; return val.toFixed(1); }
+
+  function updateBars(){
+    if (!state.track || !state.surface) return;
+    const key = state.track + "|" + state.surface;
+    const c = cond[key];
+    if (c && isFinite(c.cushion)){
+      setBar("barCv", "labCv", c.cushion, 7.0, 11.5, v=> "CV " + labelCv(v));
+    }else{
+      setBar("barCv", "labCv", 0, 7.0, 11.5, ()=>"—");
+    }
+    if (c && isFinite(c.moisture)){
+      setBar("barMo", "labMo", c.moisture, 0, 25, v=> labelMoist(v, state.surface));
+    }else{
+      setBar("barMo", "labMo", 0, 0, 25, ()=>"—");
+    }
+  }
+
+  function update(){
+    const arr = filtered();
+    const panel = document.getElementById("panel");
+    if (!state.track || !state.surface || !state.distance){ panel.style.display="none"; return; }
+    panel.style.display="";
+    document.getElementById("title").textContent = `${state.track}・${state.surface}・${state.distance}m`;
+    document.getElementById("count").textContent = `${arr.length} 件`;
+    document.getElementById("base").textContent = baseLabel(state.distance)||"—";
+
+    const avg = (a)=> a.length? a.reduce((s,v)=>s+v,0)/a.length : NaN;
+    const nums = (k)=> arr.map(x=>x[k]).filter(v=>isFinite(v));
+    const passAvg=avg(nums("pass")), lastAvg=avg(nums("last3f")), cvAvg=avg(nums("cushion")), moAvg=avg(nums("moisture"));
+    document.getElementById("avgPass").textContent=fmt(passAvg);
+    document.getElementById("avgLast3f").textContent=fmt(lastAvg);
+    document.getElementById("avgCv").textContent=fmt(cvAvg);
+    document.getElementById("avgMoist").textContent=fmt(moAvg);
+    let delta; if (isFinite(passAvg) && isFinite(lastAvg)){ const baseM = state.distance<=1200?600: state.distance<=1600?800:1000; delta = (lastAvg/3) - (passAvg/(baseM/200)); }
+    let pace="—"; if (isFinite(delta)){ if (delta<-0.3) pace="H"; else if (delta>0.3) pace="S"; else pace="M"; }
+    document.getElementById("pace").innerHTML = `<span class="tag">${pace}</span>`;
+
+    const f = getFeat(state.track, state.surface);
+    document.getElementById("featSource").textContent = f? `（${f._src}）` : "（—）";
+    const chips = [];
+    if (f?.turn_dir) chips.push(`回り: ${f.turn_dir}`);
+    if (f?.straight_len_m) chips.push(`直線: ${f.straight_len_m}m（${f.straight_len||""}）`);
+    if (f?.finish_slope) chips.push(`坂: ${f.finish_slope}${f.slope_position? " / "+f.slope_position:""}`);
+    if (f?.elevation_diff_m||f?.elevation_diff) chips.push(`高低差: ${f.elevation_diff_m||f.elevation_diff}m`);
+    if (f?.course_shape) chips.push(`形状: ${f.course_shape}`);
+    if (f?.turf_start && f.turf_start!=="—" && f.turf_start!=="無し" && state.surface==="ダ") chips.push(`芝スタート: ${f.turf_start}m`);
+    document.getElementById("featChips").innerHTML = chips.map(s=> `<span class="chip">${s}</span>`).join("");
+    document.getElementById("featNotes").textContent = f?.notes || "";
+
+    const tbody=document.querySelector("#tbl tbody"); tbody.innerHTML="";
+    arr.slice(0,800).forEach(r=>{
+      const tags = [];
+      if (r.course_variant) tags.push("Var:"+r.course_variant);
+      const tr=document.createElement("tr");
+      tr.innerHTML = `<td>${r.date||""}</td><td>${r.track||""}</td><td>${r.surface||""}</td><td class="right">${r.distance||""}</td><td>${baseLabel(Number(r.distance)||0)}</td><td>${r.course_variant||""}</td><td class="right">${fmt(r.pass)}</td><td class="right">${fmt(r.last3f)}</td><td class="right">${fmt(r.cushion)}</td><td class="right">${fmt(r.moisture)}</td><td>${r.going||""}</td><td>${r.course||""}</td><td>${tags.map(x=>`<span class='tag'>${x}</span>`).join(" ")}</td>`;
+      tbody.appendChild(tr);
+    });
+
+    updateBars();
+  }
+
+  // CSV import/export for rows
+  document.getElementById("a_export").onclick=()=>{
+    const header=["date","track","surface","distance","pass","last3f","cushion","moisture","going","course","course_variant"];
+    const lines=[header.join(",")].concat(rows.map(r=> header.map(k=> r[k]??"").join(",")));
+    const blob=new Blob([lines.join("\n")],{type:"text/csv"}); const url=URL.createObjectURL(blob);
+    const a=document.createElement("a"); a.href=url; a.download="keiba_rows.csv"; a.click(); URL.revokeObjectURL(url);
+  };
+  document.getElementById("a_import").addEventListener("change", e=>{
+    const f=e.target.files[0]; if(!f) return;
+    const fr=new FileReader();
+    fr.onload=()=>{
+      try{
+        const text=String(fr.result); const lines=text.split(/\r?\n/).filter(Boolean); const head=lines[0].split(",");
+        const idx=k=> head.indexOf(k);
+        const toNum=v=>{ const n=Number(v); return isFinite(n)?n:undefined; };
+        rows = lines.slice(1).map(line=>{
+          const c=line.split(",");
+          return { date:c[idx("date")]||"", track:c[idx("track")]||"", surface:c[idx("surface")]||"", distance: toNum(c[idx("distance")]), pass: toNum(c[idx("pass")]), last3f: toNum(c[idx("last3f")]), cushion: toNum(c[idx("cushion")]), moisture: toNum(c[idx("moisture")]), going:c[idx("going")]||"", course:c[idx("course")]||"", course_variant: (idx("course_variant")>=0? (c[idx("course_variant")]||"") : "") };
+        }).filter(r=> r.track && r.surface && r.distance);
+        save(rows); renderDistances(); update(); alert("CSVを読み込みました");
+      }catch(err){ alert("CSV読み込みエラー: "+err); }
+      e.target.value="";
+    };
+    fr.readAsText(f);
+  });
+
+  // Course features CSV
+  document.getElementById("feat_import").addEventListener("change", e=>{
+    const f=e.target.files[0]; if(!f) return;
+    const fr=new FileReader();
+    fr.onload=()=>{
+      try{
+        const text=String(fr.result); const lines=text.split(/\r?\n/).filter(Boolean);
+        const head=lines[0].split(","), idx=k=> head.indexOf(k);
+        const out={};
+        lines.slice(1).forEach(line=>{
+          const c=line.split(",");
+          const rec={track:c[idx("track")],surface:c[idx("surface")],turn_dir:c[idx("turn_dir")],straight_len_m:Number(c[idx("straight_len_m")])||undefined,straight_len:c[idx("straight_len")],elevation_diff_m:Number(c[idx("elevation_diff_m")])||undefined,finish_slope:c[idx("finish_slope")],slope_position:c[idx("slope_position")],course_shape:c[idx("course_shape")],turf_start:c[idx("turf_start")],notes:c[idx("notes")]};
+          if (rec.track && rec.surface) out[rec.track+"|"+rec.surface]=rec;
+        });
+        feat=out; localStorage.setItem("keiba_course_features_v12",JSON.stringify(out)); update(); alert("コース特徴CSVを読み込みました");
+      }catch(err){ alert("特徴CSV読み込みエラー: "+err); }
+      e.target.value="";
+    };
+    fr.readAsText(f);
+  });
+
+  // Today condition CSV
+  document.getElementById("cond_import").addEventListener("change", e=>{
+    const f=e.target.files[0]; if(!f) return;
+    const fr=new FileReader();
+    fr.onload=()=>{
+      try{
+        const text=String(fr.result); const lines=text.split(/\r?\n/).filter(Boolean);
+        const head=lines[0].split(","), idx=k=> head.indexOf(k);
+        const out = loadCond();
+        lines.slice(1).forEach(line=>{
+          const c=line.split(",");
+          const key=(c[idx("track")]||"")+"|"+(c[idx("surface")]||"");
+          if (!key.includes("|")) return;
+          out[key]={ cushion: Number(c[idx("cushion")])||undefined, moisture: Number(c[idx("moisture")])||undefined, date: c[idx("date")]||"" };
+        });
+        cond = out; saveCond(out); updateBars(); alert("馬場傾向CSVを読み込みました");
+      }catch(err){ alert("馬場傾向CSV読み込みエラー: "+err); }
+      e.target.value="";
+    };
+    fr.readAsText(f);
+  });
+
+  // Manual condition apply
+  document.getElementById("applyCond").onclick=()=>{
+    if (!state.track || !state.surface){ alert("コースと馬場を選んでください"); return; }
+    const cv = Number(document.getElementById("inCv").value);
+    const mo = Number(document.getElementById("inMo").value);
+    const key = state.track + "|" + state.surface;
+    const out = loadCond();
+    out[key] = {cushion: isFinite(cv)?cv:undefined, moisture: isFinite(mo)?mo:undefined, date: new Date().toISOString().slice(0,10)};
+    cond = out; saveCond(out); updateBars();
+  };
+
+  // sample rows (tiny)
+  document.getElementById("a_sample").onclick = ()=>{
+    rows = [
+      {date:"2025-10-01",track:"東京",surface:"芝",distance:2000,pass:58.2,last3f:34.1,cushion:8.6,moisture:13.1,going:"良",course:"A",course_variant:"A"},
+      {date:"2025-10-01",track:"東京",surface:"ダ",distance:1600,pass:60.8,last3f:37.0,cushion:9.3,moisture:12.4,going:"良",course:"A",course_variant:"A"},
+      {date:"2025-10-01",track:"中山",surface:"芝",distance:1800,pass:60.3,last3f:34.9,cushion:9.0,moisture:12.0,going:"良",course:"B",course_variant:"B"},
+      {date:"2025-10-01",track:"中京",surface:"ダ",distance:1400,pass:59.8,last3f:36.9,cushion:9.2,moisture:11.7,going:"良",course:"D",course_variant:"D"}
+    ];
+    save(rows); renderDistances(); update(); alert("サンプルデータを読み込みました");
+  };
+
+  // init
+  setTimeout(()=>{
+    $$("#segTrack button")[0]?.click();
+    document.body.dataset.surface="turf";
+    document.getElementById("surfacePill").style.display="inline-flex";
+    document.getElementById("surfacePill").textContent="芝（GREEN）";
+  },0);
+})();
+</script>
+</body>
+</html>
