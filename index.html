@@ -199,21 +199,23 @@
   });
 
   // 入力した瞬間に保存＋表示更新
-  var allInputs = inputList.querySelectorAll('input[data-track]');
   allInputs.forEach(function(inp){
-    inp.addEventListener('input', function(){
-      var t = inp.dataset.track;
-      var f = inp.dataset.field;
-      var v = inp.value;
-      if (f === "turf.cushion")  todayValues[t].turf.cushion = v;
-      if (f === "turf.moisture") todayValues[t].turf.moisture = v;
-      if (f === "dirt.moisture") todayValues[t].dirt.moisture = v;
-      if (selTrack.value === t) {
-        renderCourse();
-      }
-    });
-  });
+  inp.addEventListener('input', function(){
+    var t = inp.dataset.track;
+    var f = inp.dataset.field;
+    var v = inp.value;
+    if (f === "turf.cushion")  todayValues[t].turf.cushion = v;
+    if (f === "turf.moisture") todayValues[t].turf.moisture = v;
+    if (f === "dirt.moisture") todayValues[t].dirt.moisture = v;
 
+    // 💾 入力するたび保存
+    localStorage.setItem("todayValues", JSON.stringify(todayValues));
+
+    if (selTrack.value === t) {
+      renderCourse();
+    }
+  });
+});
   // ボタンでも一応反映
   var btns = inputList.querySelectorAll('button[data-apply]');
   btns.forEach(function(b){
