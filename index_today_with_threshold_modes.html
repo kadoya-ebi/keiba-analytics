@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>本日だけ使う版：目安切り替えつき</title>
+<title>JRAコース早見（本日だけ使う版）</title>
 <style>
   :root{
     --bg:#f3f4f6;
@@ -92,11 +92,6 @@
   }
   button:hover{
     background:#e2e8f0;
-  }
-  .btn-main{
-    background:#0f766e;
-    color:#fff;
-    border:none;
   }
   .muted{
     color:var(--muted);
@@ -218,60 +213,76 @@
 </style>
 </head>
 <body>
-<div class="wrap">
-  <h1>本日だけ使う版：コース特徴＋馬場メーター <small class="muted">（目安：自動/芝固定/ダート固定/カスタム）</small></h1>
+<header class="topbar">
+  <div class="logo">JRAコース早見</div>
+  <div class="today">本日入力版</div>
+</header>
 
+<div class="wrap">
+  <!-- 入力 -->
   <div class="card">
-    <div class="row">
-      <label>競馬場 <select id="selTrack"></select></label>
-      <label>馬場 <select id="selSurf"><option value="芝">芝</option><option value="ダ">ダート</option></select></label>
-      <label>距離 <select id="selDist"></select></label>
+    <div class="selector-bar">
+      <label>競馬場
+        <select id="selTrack"></select>
+      </label>
+      <label>馬場
+        <select id="selSurf">
+          <option value="芝">芝</option>
+          <option value="ダ">ダート</option>
+        </select>
+      </label>
+      <label>距離
+        <select id="selDist"></select>
+      </label>
       <button id="btnCopy">テキストをコピー</button>
     </div>
-    <div class="muted">※ 保存・履歴・シート連携なし。ページを閉じるとリセット。</div>
+    <div class="muted" style="margin-top:6px">※ ページを閉じるとリセット。今日だけのメモ用。</div>
   </div>
 
-  <div class="card feat" id="card">
+  <!-- コース特徴 -->
+  <div class="card feat turf" id="card">
     <div class="big" id="title">—</div>
     <div id="line1">—</div>
     <div id="line2" style="margin-top:4px">—</div>
     <div class="muted" id="meta" style="margin-top:8px">—</div>
+    <div class="course-grid" id="courseGrid">
+      <!-- JSで埋める -->
+    </div>
   </div>
 
+  <!-- 馬場傾向 -->
   <div class="card">
-    <div class="row" style="justify-content:space-between;align-items:center">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
       <strong>本日の馬場傾向（クッション値・含水率）</strong>
-      <div class="row">
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
         <input id="inCv" type="number" step="0.1" placeholder="CV" class="mini" style="width:90px">
         <input id="inMo" type="number" step="0.1" placeholder="%水分" class="mini" style="width:100px">
-        <button id="applyCond">反映</button>
-        <button id="clearCond">クリア</button>
+        <button id="applyCond" class="mini">反映</button>
+        <button id="clearCond" class="mini">クリア</button>
       </div>
     </div>
 
-    <!-- 目安切り替え -->
-    <div class="row" style="margin-top:8px;align-items:center;gap:12px">
-      <div class="thbox">
-        <label>目安モード
-          <select id="selMode" class="mini">
-            <option value="auto">自動（馬場に合わせる）</option>
-            <option value="turf">芝で固定</option>
-            <option value="dirt">ダートで固定</option>
-            <option value="custom">カスタム</option>
-          </select>
-        </label>
-      </div>
+    <div style="margin-top:8px;display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+      <label>目安モード
+        <select id="selMode" class="mini">
+          <option value="auto">自動（馬場に合わせる）</option>
+          <option value="turf">芝で固定</option>
+          <option value="dirt">ダートで固定</option>
+          <option value="custom">カスタム</option>
+        </select>
+      </label>
       <div id="customBox" class="thbox" style="display:none">
         <span class="muted">カスタム閾値：</span>
-        <label>良≦ <input id="th1" type="number" step="0.1" value="10"></label>
-        <label>稍重≦ <input id="th2" type="number" step="0.1" value="15"></label>
-        <label>重≦ <input id="th3" type="number" step="0.1" value="20"></label>
+        <label>良≦ <input id="th1" type="number" step="0.1" value="10" class="mini" style="width:70px"></label>
+        <label>稍重≦ <input id="th2" type="number" step="0.1" value="15" class="mini" style="width:70px"></label>
+        <label>重≦ <input id="th3" type="number" step="0.1" value="20" class="mini" style="width:70px"></label>
         <button id="applyTh" class="mini">反映</button>
       </div>
     </div>
 
-    <div style="margin-top:8px">
-      <div class="row" style="gap:12px;align-items:center">
+    <!-- CV -->
+    <div style="margin-top:10px">
+      <div style="display:flex;gap:12px;align-items:center">
         <div style="min-width:100px;font-weight:600">芝クッション</div>
         <div class="bar" id="barCv" style="flex:1">
           <div class="fill" style="width:0%"></div>
@@ -281,12 +292,14 @@
           <div class="tick" style="left:75%"></div>
           <div class="tick" style="left:100%"></div>
         </div>
-        <div id="labCv" style="min-width:90px;text-align:right" class="muted">—</div>
+        <div id="labCv" style="min-width:110px;text-align:right" class="muted">—</div>
       </div>
       <div class="legend"><span>柔らかめ</span><span>—</span><span>—</span><span>硬め</span></div>
     </div>
+
+    <!-- 含水 -->
     <div style="margin-top:10px">
-      <div class="row" style="gap:12px;align-items:center">
+      <div style="display:flex;gap:12px;align-items:center">
         <div style="min-width:100px;font-weight:600">含水率</div>
         <div class="bar" id="barMo" style="flex:1">
           <div class="fill" style="width:0%"></div>
@@ -296,7 +309,7 @@
           <div class="tick" style="left:75%"></div>
           <div class="tick" style="left:100%"></div>
         </div>
-        <div id="labMo" style="min-width:90px;text-align:right" class="muted">—</div>
+        <div id="labMo" style="min-width:130px;text-align:right" class="muted">—</div>
       </div>
       <div class="legend" id="legendMo"><span>良</span><span>稍重</span><span>重</span><span>不良</span></div>
     </div>
@@ -304,6 +317,7 @@
 </div>
 
 <script>
+/* ====== 1. JRA 全場データ ====== */
 const DATA = {
   "札幌": {
     "meta": {"turn":"右回り","straight":266,"elev":0.7,"slope_h":0.3,"shape":"標準"},
@@ -467,21 +481,28 @@ const DATA = {
   }
 };
 
+/* ====== 2. 要素参照 ====== */
 const $ = (q, el=document)=> el.querySelector(q);
 const selT = $("#selTrack"), selS = $("#selSurf"), selD = $("#selDist");
 const title = $("#title"), line1 = $("#line1"), line2 = $("#line2"), meta = $("#meta"), card = $("#card");
 const inCv = $("#inCv"), inMo = $("#inMo");
 const selMode = $("#selMode"), customBox = $("#customBox"), th1=$("#th1"), th2=$("#th2"), th3=$("#th3");
+const courseGrid = $("#courseGrid");
 
 let thresholds = { turf:[10,15,20], dirt:[7,10,13], custom:[10,15,20] };
 let mode = "auto";
 
+/* ====== 3. 初期化 ====== */
 function init(){
   Object.keys(DATA).forEach(t=>{
-    const o=document.createElement('option'); o.value=t; o.textContent=t; selT.appendChild(o);
+    const o=document.createElement('option');
+    o.value=t; o.textContent=t;
+    selT.appendChild(o);
   });
   selT.value = "東京"; selS.value = "芝";
-  selT.onchange = onChangeSel; selS.onchange = onChangeSel; selD.onchange = render;
+  selT.onchange = onChangeSel;
+  selS.onchange = onChangeSel;
+  selD.onchange = render;
   $("#btnCopy").onclick = copyText;
   $("#applyCond").onclick = applyCond;
   $("#clearCond").onclick = clearCond;
@@ -490,68 +511,114 @@ function init(){
     thresholds.custom = [Number(th1.value)||10, Number(th2.value)||15, Number(th3.value)||20];
     updateBars(); updateLegend();
   };
-  refreshDists(); render(); updateLegend();
+
+  refreshDists();
+  render();
+  updateLegend();
 }
 
+/* ====== 4. 目安モード変更 ====== */
 function onModeChange(){
   mode = selMode.value;
   customBox.style.display = (mode==="custom") ? "flex" : "none";
-  updateBars(); updateLegend();
+  updateBars();
+  updateLegend();
 }
 
+/* ====== 5. 今の目安を返す ====== */
 function currentThreshold(){
   if (mode==="turf") return thresholds.turf;
   if (mode==="dirt") return thresholds.dirt;
   if (mode==="custom") return thresholds.custom;
+  // auto
   return (selS.value==="芝") ? thresholds.turf : thresholds.dirt;
 }
 
+/* ====== 6. 凡例更新 ====== */
 function updateLegend(){
   const th = currentThreshold();
   const el = $("#legendMo");
   el.innerHTML = `<span>良（≦${th[0]}%）</span><span>稍重（≦${th[1]}%）</span><span>重（≦${th[2]}%）</span><span>不良（＞${th[2]}%）</span>`;
 }
 
+/* ====== 7. 競馬場/馬場が変わったら距離を更新 ====== */
 function onChangeSel(){
-  refreshDists(); render(); updateBars(); updateLegend();
+  refreshDists();
+  render();
+  updateBars();
+  updateLegend();
 }
 
+/* ====== 8. 距離セレクト更新 ====== */
 function refreshDists(){
   selD.innerHTML="";
   const t = selT.value, s = selS.value;
   const dists = Object.keys(DATA[t][s]).sort((a,b)=>Number(a)-Number(b));
   dists.forEach(d=>{
-    const o=document.createElement('option'); o.value=d; o.textContent=d; selD.appendChild(o);
+    const o=document.createElement('option'); o.value=d; o.textContent=d;
+    selD.appendChild(o);
   });
 }
 
+/* ====== 9. 画面表示の更新 ====== */
 function render(){
   const t=selT.value, s=selS.value, d=selD.value;
   const metaInfo = DATA[t].meta;
   const rec = DATA[t][s][d];
-  title.textContent = `${t}・${s}・${d}m`;
-  const turn = metaInfo.turn, straight = metaInfo.straight, elev = metaInfo.elev, slope_h = metaInfo.slope_h, shape = metaInfo.shape;
-  card.classList.remove('turf','dirt'); card.classList.add(s==="芝" ? 'turf':'dirt');
+
+  title.innerHTML = `<span class="tag ${s==="芝"?"turf":"dirt"}">${s}</span>${t}・${d}m`;
+  card.classList.remove('turf','dirt');
+  card.classList.add(s==="芝" ? 'turf':'dirt');
+
   line1.textContent = rec?.note || "（準備中）";
   line2.textContent = s==="ダ" && rec?.turf_start ? "芝スタート距離です。" : "";
-  meta.textContent = `基本情報：${turn}／直線${straight}m／高低差${elev}m／坂高${slope_h}m／形状${shape}`;
+  meta.textContent = `基本情報：${metaInfo.turn}／直線${metaInfo.straight}m／高低差${metaInfo.elev}m／坂高${metaInfo.slope_h}m／形状${metaInfo.shape}`;
+
+  // 小カード
+  courseGrid.innerHTML = "";
+  const frag = document.createDocumentFragment();
+  const c1 = document.createElement("div");
+  c1.className="cg"; c1.innerHTML = "回り <strong>"+metaInfo.turn+"</strong>";
+  frag.appendChild(c1);
+  const c2 = document.createElement("div");
+  c2.className="cg"; c2.innerHTML = "直線 <strong>"+metaInfo.straight+"m</strong>";
+  frag.appendChild(c2);
+  const c3 = document.createElement("div");
+  c3.className="cg"; c3.innerHTML = "高低差 <strong>"+metaInfo.elev+"m</strong>";
+  frag.appendChild(c3);
+  const c4 = document.createElement("div");
+  c4.className="cg"; c4.innerHTML = "坂高 <strong>"+metaInfo.slope_h+"m</strong>";
+  frag.appendChild(c4);
+  const c5 = document.createElement("div");
+  c5.className="cg"; c5.innerHTML = "形状 <strong>"+metaInfo.shape+"</strong>";
+  frag.appendChild(c5);
+  if (s==="ダ" && rec?.turf_start){
+    const c6 = document.createElement("div");
+    c6.className="cg"; c6.innerHTML = "芝スタート <strong>あり</strong>";
+    frag.appendChild(c6);
+  }
+  courseGrid.appendChild(frag);
 }
 
+/* ====== 10. バー描画 ====== */
 function setBar(barId, labelId, value, min, max, formatter){
   const pct = Math.max(0, Math.min(100, (value-min) * 100 / (max-min)));
   const bar = document.getElementById(barId).querySelector(".fill");
   bar.style.width = isFinite(pct)? (pct + "%") : "0%";
-  document.getElementById(labelId).textContent = formatter(value);
+  // バッジ表示したいのでinnerHTMLで
+  document.getElementById(labelId).innerHTML = formatter(value);
 }
 
+/* ====== 11. 含水率をラベルに変換（バッジ付き） ====== */
 function labelMoist(val){
   if (!isFinite(val)) return "—";
   const t = currentThreshold();
   const lab = (val<=t[0]?"良": val<=t[1]?"稍重": val<=t[2]?"重":"不良");
   const badgeClass = (lab==="良"?"cond-good": lab==="稍重"?"cond-yayo":"cond-heavy");
-  return `${lab} <span class="cond-badge ${badgeClass}">${lab}</span> ${val.toFixed(1)}%`;
+  return `<span class="cond-badge ${badgeClass}">${lab}</span> ${val.toFixed(1)}%`;
 }
 
+/* ====== 12. 反映ボタン ====== */
 function applyCond(){
   const cv = Number(inCv.value), mo = Number(inMo.value);
   if (isFinite(cv)){
@@ -564,6 +631,7 @@ function applyCond(){
   }
 }
 
+/* ====== 13. 手動でバー更新（目安を変えた時など） ====== */
 function updateBars(){
   if (window.__cv != null)
     setBar("barCv","labCv", window.__cv, 7.0, 11.5, v=> "CV " + v.toFixed(1));
@@ -576,6 +644,7 @@ function updateBars(){
     setBar("barMo","labMo", 0, 25, ()=>"—");
 }
 
+/* ====== 14. クリア ====== */
 function clearCond(){
   window.__cv = undefined; window.__mo = undefined;
   setBar("barCv","labCv", 0, 7.0, 11.5, ()=>"—");
@@ -583,6 +652,7 @@ function clearCond(){
   inCv.value=""; inMo.value="";
 }
 
+/* ====== 15. コピー ====== */
 async function copyText(){
   const tLine = title.textContent;
   const l1 = line1.textContent;
