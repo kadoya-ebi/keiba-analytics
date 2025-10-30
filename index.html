@@ -24,7 +24,123 @@
   <iframe id="viewer" src="index_cascade_plus.html" loading="lazy" title="viewer"></iframe>
 </div>
 <script>
-const tabs=[...document.querySelectorAll('.tab')], v=document.getElementById('viewer');
+// ==== コースごとの基準タイム（芝・ダート） ====
+// ※あとで値を調整可能です。現状はテスト用の概算。
+
+const courseStandard = {
+  // ===== 東京 =====
+  "東京_芝_1400": { pass: 46.8, last3f: 34.3 },
+  "東京_芝_1600": { pass: 57.8, last3f: 33.8 },
+  "東京_芝_1800": { pass: 59.5, last3f: 34.0 },
+  "東京_芝_2000": { pass: 58.2, last3f: 34.1 },
+  "東京_芝_2400": { pass: 60.5, last3f: 34.4 },
+  "東京_ダ_1300": { pass: 60.5, last3f: 37.2 },
+  "東京_ダ_1400": { pass: 59.5, last3f: 37.0 },
+  "東京_ダ_1600": { pass: 61.0, last3f: 36.8 },
+  "東京_ダ_2100": { pass: 64.5, last3f: 38.5 },
+
+  // ===== 中山 =====
+  "中山_芝_1200": { pass: 34.2, last3f: 34.6 },
+  "中山_芝_1600": { pass: 59.8, last3f: 35.2 },
+  "中山_芝_1800": { pass: 60.5, last3f: 35.0 },
+  "中山_芝_2000": { pass: 60.0, last3f: 34.5 },
+  "中山_芝_2500": { pass: 61.5, last3f: 35.2 },
+  "中山_ダ_1200": { pass: 60.5, last3f: 37.2 },
+  "中山_ダ_1800": { pass: 63.5, last3f: 38.0 },
+
+  // ===== 京都 =====
+  "京都_芝_1400": { pass: 46.9, last3f: 34.5 },
+  "京都_芝_1600": { pass: 57.9, last3f: 34.0 },
+  "京都_芝_1800": { pass: 59.0, last3f: 34.3 },
+  "京都_芝_2000": { pass: 59.2, last3f: 34.5 },
+  "京都_芝_2200": { pass: 60.2, last3f: 34.7 },
+  "京都_芝_2400": { pass: 61.2, last3f: 34.9 },
+  "京都_ダ_1200": { pass: 60.2, last3f: 37.1 },
+  "京都_ダ_1400": { pass: 60.0, last3f: 37.0 },
+  "京都_ダ_1800": { pass: 63.0, last3f: 38.0 },
+
+  // ===== 阪神 =====
+  "阪神_芝_1200": { pass: 34.5, last3f: 34.4 },
+  "阪神_芝_1400": { pass: 47.0, last3f: 34.6 },
+  "阪神_芝_1600": { pass: 58.5, last3f: 34.5 },
+  "阪神_芝_1800": { pass: 59.8, last3f: 34.6 },
+  "阪神_芝_2000": { pass: 60.0, last3f: 34.8 },
+  "阪神_芝_2200": { pass: 61.0, last3f: 35.0 },
+  "阪神_芝_2400": { pass: 62.0, last3f: 35.1 },
+  "阪神_ダ_1200": { pass: 60.8, last3f: 37.2 },
+  "阪神_ダ_1400": { pass: 60.5, last3f: 37.2 },
+  "阪神_ダ_1800": { pass: 63.8, last3f: 38.2 },
+  "阪神_ダ_2000": { pass: 65.0, last3f: 38.5 },
+
+  // ===== 中京 =====
+  "中京_芝_1200": { pass: 34.0, last3f: 34.2 },
+  "中京_芝_1400": { pass: 47.1, last3f: 34.4 },
+  "中京_芝_1600": { pass: 58.0, last3f: 34.1 },
+  "中京_芝_2000": { pass: 59.8, last3f: 34.5 },
+  "中京_芝_2200": { pass: 61.1, last3f: 34.8 },
+  "中京_ダ_1200": { pass: 60.3, last3f: 37.2 },
+  "中京_ダ_1400": { pass: 60.2, last3f: 37.3 },
+  "中京_ダ_1800": { pass: 63.8, last3f: 38.3 },
+
+  // ===== 新潟 =====
+  "新潟_芝_1000": { pass: 32.4, last3f: 33.9 },
+  "新潟_芝_1200": { pass: 34.8, last3f: 34.2 },
+  "新潟_芝_1400": { pass: 47.2, last3f: 34.5 },
+  "新潟_芝_1600": { pass: 58.5, last3f: 34.4 },
+  "新潟_芝_1800": { pass: 59.8, last3f: 34.6 },
+  "新潟_芝_2000": { pass: 60.5, last3f: 34.8 },
+  "新潟_ダ_1200": { pass: 60.8, last3f: 37.3 },
+  "新潟_ダ_1800": { pass: 64.2, last3f: 38.4 },
+
+  // ===== 札幌 =====
+  "札幌_芝_1200": { pass: 34.5, last3f: 34.6 },
+  "札幌_芝_1500": { pass: 46.5, last3f: 35.0 },
+  "札幌_芝_1800": { pass: 59.8, last3f: 35.4 },
+  "札幌_芝_2000": { pass: 60.5, last3f: 35.5 },
+  "札幌_ダ_1000": { pass: 59.2, last3f: 37.1 },
+  "札幌_ダ_1700": { pass: 63.5, last3f: 38.5 },
+
+  // ===== 函館 =====
+  "函館_芝_1200": { pass: 34.0, last3f: 34.5 },
+  "函館_芝_1800": { pass: 59.5, last3f: 35.2 },
+  "函館_芝_2000": { pass: 60.2, last3f: 35.4 },
+  "函館_ダ_1000": { pass: 59.0, last3f: 37.0 },
+  "函館_ダ_1700": { pass: 63.0, last3f: 38.3 },
+
+  // ===== 福島 =====
+  "福島_芝_1200": { pass: 34.4, last3f: 34.6 },
+  "福島_芝_1800": { pass: 59.9, last3f: 35.2 },
+  "福島_芝_2000": { pass: 60.4, last3f: 35.3 },
+  "福島_ダ_1150": { pass: 60.2, last3f: 37.2 },
+  "福島_ダ_1700": { pass: 63.4, last3f: 38.4 },
+
+  // ===== 小倉 =====
+  "小倉_芝_1200": { pass: 34.0, last3f: 34.2 },
+  "小倉_芝_1700": { pass: 63.2, last3f: 38.3 },
+  "小倉_芝_1800": { pass: 59.5, last3f: 34.6 },
+  "小倉_芝_2000": { pass: 60.5, last3f: 34.8 },
+  "小倉_ダ_1000": { pass: 59.5, last3f: 37.1 },
+  "小倉_ダ_1700": { pass: 63.6, last3f: 38.4 }
+};
+
+// ==== 表示関数 ====
+function showStandard(course, surface, dist) {
+  const key = `${course}_${surface}_${dist}`;
+  const box = document.getElementById("standardBox");
+  const data = courseStandard[key];
+
+  if (!box) return;
+  if (!data) {
+    box.textContent = "";
+    return;
+  }
+
+  box.innerHTML = `
+    基準通過：<strong>${data.pass}</strong>　
+    基準上がり3F：<strong>${data.last3f}</strong>
+  `;
+}
+</script>const tabs=[...document.querySelectorAll('.tab')], v=document.getElementById('viewer');
 tabs.forEach(t=>t.addEventListener('click',()=>{
   tabs.forEach(x=>x.classList.remove('active'));
   t.classList.add('active');
