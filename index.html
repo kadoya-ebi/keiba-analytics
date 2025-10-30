@@ -187,7 +187,7 @@
       '<div class="input-line">'+
         '<span style="font-size:.65rem;">芝 C</span>'+
         '<input type="number" step="0.1" class="small-inp" data-track="'+t+'" data-field="turf.cushion" placeholder="10" />'+
-        '<span style="font-size:.65rem;">芝 水</span>'+   // ←ここだけ直した
+        '<span style="font-size:.65rem;">芝 水</span>'+   // ←「芝 含水」からここだけ変更
         '<input type="number" step="0.1" class="small-inp" data-track="'+t+'" data-field="turf.moisture" placeholder="20" />'+
       '</div>'+
       '<div class="input-line">'+
@@ -198,24 +198,44 @@
     inputList.appendChild(wrap);
   });
 
-  // 入力した瞬間に保存＋表示更新
+  // 🟣 入力した瞬間に todayValues に入れて → 表示してた競馬場なら描き直す
+  var allInputs = inputList.querySelectorAll('input[data-track]');
   allInputs.forEach(function(inp){
-  inp.addEventListener('input', function(){
-    var t = inp.dataset.track;
-    var f = inp.dataset.field;
-    var v = inp.value;
-    if (f === "turf.cushion")  todayValues[t].turf.cushion = v;
-    if (f === "turf.moisture") todayValues[t].turf.moisture = v;
-    if (f === "dirt.moisture") todayValues[t].dirt.moisture = v;
+    inp.addEventListener('input', function(){
+      var t = inp.dataset.track;   // どの競馬場か（東京とか）
+      var f = inp.dataset.field;   // turf.cushion / turf.moisture / dirt.moisture
+      var v = inp.value;           // 入力した数値
 
-    // 💾 入力するたび保存
-    localStorage.setItem("todayValues", JSON.stringify(todayValues));
+      if (f === "turf.cushion")  todayValues[t].turf.cushion = v;
+      if (f === "turf.moisture") todayValues[t].turf.moisture = v;
+      if (f === "dirt.moisture") todayValues[t].dirt.moisture = v;
 
-    if (selTrack.value === t) {
-      renderCourse();
-    }
+      // 今タブ1で表示してる競馬場と同じなら、すぐ描き直す
+      if (selTrack.value === t) {
+        renderCourse();
+      }
+    });
   });
-});
+
+  // 🟣 「反映」ボタンでも同じことをする（まとめ入力用）
+  var btns = inputList.querySelectorAll('button[data-apply]');
+  btns.forEach(function(b){
+    b.addEventListener('click', function(){
+      var t = b.dataset.apply;
+      var ins = inputList.querySelectorAll('input[data-track="'+t+'"]');
+      ins.forEach(function(inp){
+        var f = inp.dataset.field;
+        var v = inp.value;
+        if (f === "turf.cushion")  todayValues[t].turf.cushion = v;
+        if (f === "turf.moisture") todayValues[t].turf.moisture = v;
+        if (f === "dirt.moisture") todayValues[t].dirt.moisture = v;
+      });
+      if (selTrack.value === t) {
+        renderCourse();
+      }
+    });
+  });
+}
   // ボタンでも一応反映
   var btns = inputList.querySelectorAll('button[data-apply]');
   btns.forEach(function(b){
