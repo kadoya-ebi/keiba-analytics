@@ -548,7 +548,8 @@ function labelMoist(val){
   if (!isFinite(val)) return "—";
   const t = currentThreshold();
   const lab = (val<=t[0]?"良": val<=t[1]?"稍重": val<=t[2]?"重":"不良");
-  return `${lab} ${val.toFixed(1)}%`;
+  const badgeClass = (lab==="良"?"cond-good": lab==="稍重"?"cond-yayo":"cond-heavy");
+  return `${lab} <span class="cond-badge ${badgeClass}">${lab}</span> ${val.toFixed(1)}%`;
 }
 
 function applyCond(){
