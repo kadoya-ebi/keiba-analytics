@@ -1,340 +1,443 @@
-<script>
-  // 基本データ（ここにコース特徴を入れてる）
-  const COURSES = {
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <title>JRAコース早見（本日入力版）</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <style>
+    body {
+      margin: 0;
+      font-family: -apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans JP",sans-serif;
+      background: #f3f5f6;
+      color: #12212d;
+    }
+    header {
+      background: #0f766e;
+      color: #fff;
+      padding: 14px 16px 8px;
+    }
+    header h1 { margin: 0; font-size: 1.05rem; }
+    header small { font-size: .7rem; opacity: .8; }
+    .tabs {
+      display: flex;
+      gap: 8px;
+      background: #0f766e;
+      padding: 10px 14px 6px;
+    }
+    .tab-btn {
+      flex: 1;
+      border: none;
+      background: rgba(255,255,255,.08);
+      border-radius: 999px;
+      padding: 8px 0 7px;
+      color: #fff;
+      font-weight: 600;
+      font-size: .8rem;
+    }
+    .tab-btn.active {
+      background: #fff;
+      color: #0f766e;
+      box-shadow: 0 6px 18px rgba(0,0,0,.12);
+    }
+    main {
+      padding: 14px 14px 90px;
+      max-width: 820px;
+      margin: 0 auto;
+    }
+    .card {
+      background: #fff;
+      border-radius: 18px;
+      padding: 16px 16px 12px;
+      box-shadow: 0 6px 18px rgba(0,0,0,.03);
+      margin-bottom: 14px;
+    }
+    label {
+      display: block;
+      font-size: .65rem;
+      margin-bottom: 3px;
+      color: #6b7280;
+    }
+    select, input[type="number"] {
+      width: 100%;
+      border: 1px solid #dbe2e5;
+      border-radius: 14px;
+      padding: 8px 10px;
+      font-size: .9rem;
+      background: #fff;
+    }
+    .row { display: flex; gap: 9px; flex-wrap: wrap; }
+    .col { flex: 1 1 30%; min-width: 115px; }
+    .course-card {
+      border-radius: 16px;
+      padding: 12px 12px 10px;
+      margin-bottom: 10px;
+    }
+    .course-title {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 4px;
+    }
+    .tag {
+      display: inline-block;
+      border-radius: 999px;
+      padding: 3px 10px 2px;
+      font-size: .7rem;
+      font-weight: 600;
+      color: #fff;
+    }
+    .course-basic { font-size: .78rem; margin-bottom: 7px; }
+    .pill-grid { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
+    .pill { background: #fff; border-radius: 12px; padding: 5px 9px 5px; min-width: 90px; }
+    .pill .lbl { font-size: .62rem; opacity: .7; }
+    .pill .val { font-weight: 600; font-size: .85rem; }
+    .bar { width: 100%; height: 12px; border-radius: 999px; background: #dbe5eb; overflow: hidden; margin-bottom: 4px; }
+    .bar-inner { height: 100%; width: 0; }
+    .bar-line { display: flex; justify-content: space-between; font-size: .66rem; margin-bottom: 7px; }
+    .copy-btn { background:#fff;border:1px solid rgba(0,0,0,.02);border-radius:12px;padding:7px 10px 7px;font-size:.7rem;margin-top:4px; }
+    .track-input { border-bottom:1px solid rgba(217,225,229,.6);padding:12px 0 12px; }
+    .input-line { display:flex;gap:6px;flex-wrap:wrap;margin-bottom:5px; }
+    .small-inp { flex:0 0 75px;border:1px solid #dbe2e5;border-radius:12px;padding:5px 6px 4px;font-size:.75rem; }
+    .small-btn { border:none;background:#0f766e;color:#fff;border-radius:11px;padding:4px 11px 3px;font-size:.7rem; }
+    @media (min-width:700px){ .small-inp{flex:0 0 90px;} }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>JRAコース早見</h1>
+    <small>本日入力 → タブ1で表示</small>
+  </header>
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="view">タブ1：見る</button>
+    <button class="tab-btn" data-tab="input">タブ2：入力</button>
+  </div>
+  <main>
+    <div id="tab-view">
+      <div class="card">
+        <div class="row">
+          <div class="col">
+            <label>競馬場</label>
+            <select id="selTrack"></select>
+          </div>
+          <div class="col">
+            <label>馬場</label>
+            <select id="selSurface">
+              <option value="芝">芝</option>
+              <option value="ダート">ダート</option>
+            </select>
+          </div>
+          <div class="col">
+            <label>距離</label>
+            <select id="selDist"></select>
+          </div>
+        </div>
+      </div>
+      <div id="courseInfo"></div>
+    </div>
+
+    <div id="tab-input" style="display:none;">
+      <div class="card">
+        <p style="font-size:.7rem;margin-bottom:8px;">ここに入れた数値がタブ1に出ます。</p>
+        <div id="inputList"></div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+  // --- 競馬場のベースデータ（最小構成） ---
+  var COURSES = {
     "東京": {
       "芝": {
-        distances: [1400,1600,1800,2000,2400,2500,3400],
+        distances: [1400,1600,1800,2000],
         info: {
-          2000: {
-            turn: "左回り",
-            straight: 526,
-            slopePlace: "ゴール前坂あり",
-            slope: 1.5,
-            diff: 2.0,
-            shape: "大回り",
-            start: "2コーナー発走",
-          },
-          1600: {
-            turn: "左回り",
-            straight: 526,
-            slopePlace: "ゴール前坂あり",
-            slope: 1.5,
-            diff: 2.0,
-            shape: "ワンターン",
-            start: "正面スタンド前",
-          }
+          2000: { turn:"左回り", straight:526, slopePlace:"ゴール前坂あり", slope:1.5, diff:2.0, shape:"大回り", start:"2コーナー発走" }
         },
-        defaultAvg: { pass: 58.0, last3f: 34.0 }
+        base: { pass: 58.0, last3f: 34.0 }
       },
       "ダート": {
         distances: [1300,1400,1600,2100],
-        info: {},
-        defaultAvg: { pass: 61.0, last3f: 36.5 }
+        info: {
+          1600: { turn:"左回り", straight:501, slopePlace:"ゴール前坂あり", slope:1.5, diff:2.0, shape:"芝スタート", start:"芝→ダ" }
+        },
+        base: { pass: 61.0, last3f: 36.5 }
       }
     },
     "中山": {
       "芝": {
-        distances: [1200,1600,1800,2000,2200,2500],
+        distances: [1200,1600,1800,2000],
         info: {
-          2000: {
-            turn: "右回り",
-            straight: 310,
-            slopePlace: "ゴール前急坂",
-            slope: 2.2,
-            diff: 5.3,
-            shape: "小回り",
-            start: "スタンド前",
-          }
+          2000: { turn:"右回り", straight:310, slopePlace:"ゴール前急坂", slope:2.2, diff:5.3, shape:"小回り", start:"スタンド前" }
         },
-        defaultAvg: { pass: 59.5, last3f: 35.0 }
+        base: { pass: 59.5, last3f: 35.0 }
       },
       "ダート": {
         distances: [1200,1800,2400],
         info: {},
-        defaultAvg: { pass: 62.0, last3f: 37.0 }
+        base: { pass: 62.0, last3f: 37.0 }
       }
     },
     "京都": {
       "芝": {
-        distances: [1200,1400,1600,1800,2000,2200,3000],
+        distances: [1600,1800,2000,2200],
         info: {
-          2000: {
-            turn: "右回り",
-            straight: 404,
-            slopePlace: "ゴール前わずかに上り",
-            slope: 1.0,
-            diff: 3.5,
-            shape: "内回り",
-            start: "2コーナーポケット",
-          }
+          2000: { turn:"右回り", straight:404, slopePlace:"ゴール前わずかに上り", slope:1.0, diff:3.5, shape:"内回り", start:"2角P" }
         },
-        defaultAvg: { pass: 58.8, last3f: 34.6 }
+        base: { pass: 58.8, last3f: 34.6 }
       },
       "ダート": {
-        distances: [1200,1400,1800,1900],
+        distances: [1200,1400,1800],
         info: {},
-        defaultAvg: { pass: 61.5, last3f: 37.2 }
+        base: { pass: 61.5, last3f: 37.2 }
       }
     },
     "阪神": {
       "芝": {
-        distances: [1200,1400,1600,1800,2000,2400],
+        distances: [1600,1800,2000],
         info: {
-          1600: {
-            turn: "右回り",
-            straight: 473,
-            slopePlace: "ゴール前坂あり",
-            slope: 1.8,
-            diff: 2.0,
-            shape: "外回り",
-            start: "向正面",
-          }
+          1600: { turn:"右回り", straight:473, slopePlace:"ゴール前坂あり", slope:1.8, diff:2.0, shape:"外回り", start:"向正面" }
         },
-        defaultAvg: { pass: 58.7, last3f: 34.5 }
+        base: { pass: 58.7, last3f: 34.5 }
       },
       "ダート": {
-        distances: [1200,1400,1800,2000],
+        distances: [1200,1400,1800],
         info: {},
-        defaultAvg: { pass: 62.4, last3f: 37.0 }
-      }
-    },
-    "小倉": {
-      "芝": {
-        distances: [1200,1700,1800,2000],
-        info: {
-          1800: {
-            turn: "右回り",
-            straight: 293,
-            slopePlace: "ゴール前わずかに上り",
-            slope: 0.6,
-            diff: 3.0,
-            shape: "小回り",
-            start: "4コーナーポケット",
-          }
-        },
-        defaultAvg: { pass: 59.0, last3f: 35.3 }
-      },
-      "ダート": {
-        distances: [1000,1700,2400],
-        info: {},
-        defaultAvg: { pass: 63.0, last3f: 37.5 }
+        base: { pass: 62.4, last3f: 37.0 }
       }
     }
   };
 
-  // 本日の値を入れておく入れ物
-  let todayValues = {};
-  Object.keys(COURSES).forEach(track => {
-    todayValues[track] = {
+  // --- 今日の値を置いておく箱 ---
+  var todayValues = {};
+  var trackNames = Object.keys(COURSES);
+  for (var i=0; i<trackNames.length; i++) {
+    var t = trackNames[i];
+    todayValues[t] = {
       turf: { cushion: "", moisture: "" },
       dirt: { moisture: "" }
     };
+  }
+
+  // --- DOM取得 ---
+  var selTrack = document.getElementById('selTrack');
+  var selSurface = document.getElementById('selSurface');
+  var selDist = document.getElementById('selDist');
+  var courseInfo = document.getElementById('courseInfo');
+  var inputList = document.getElementById('inputList');
+
+  // --- セレクト初期化 ---
+  function initSelectors(){
+    for (var i=0; i<trackNames.length; i++){
+      var op = document.createElement('option');
+      op.value = trackNames[i];
+      op.textContent = trackNames[i];
+      selTrack.appendChild(op);
+    }
+    fillDists();
+  }
+
+  function fillDists(){
+    var tr = selTrack.value;
+    var sf = selSurface.value;
+    selDist.innerHTML = "";
+    var ds = COURSES[tr][sf].distances;
+    for (var i=0; i<ds.length; i++){
+      var op = document.createElement('option');
+      op.value = ds[i];
+      op.textContent = ds[i];
+      selDist.appendChild(op);
+    }
+  }
+
+  selTrack.addEventListener('change', function(){
+    fillDists();
+    renderCourse();
   });
+  selSurface.addEventListener('change', function(){
+    fillDists();
+    renderCourse();
+  });
+  selDist.addEventListener('change', renderCourse);
 
-  // DOM
-  const tabBtns = document.querySelectorAll(".tab-btn");
-  const tabView = document.getElementById("tab-view");
-  const tabInput = document.getElementById("tab-input");
-  const selTrack = document.getElementById("selTrack");
-  const selSurface = document.getElementById("selSurface");
-  const selDist = document.getElementById("selDist");
-  const courseInfo = document.getElementById("courseInfo");
-  const inputList = document.getElementById("inputList");
-
-  // タブ切り替え
-  tabBtns.forEach(btn => {
-    btn.addEventListener("click", () => {
-      tabBtns.forEach(b => b.classList.remove("active"));
-      btn.classList.add("active");
-      const tab = btn.dataset.tab;
-      if (tab === "view") {
-        tabView.style.display = "block";
-        tabInput.style.display = "none";
+  // --- タブ切替 ---
+  var tabView = document.getElementById('tab-view');
+  var tabInput = document.getElementById('tab-input');
+  var tabBtns = document.querySelectorAll('.tab-btn');
+  for (var i=0; i<tabBtns.length; i++){
+    tabBtns[i].addEventListener('click', function(e){
+      for (var j=0; j<tabBtns.length; j++){ tabBtns[j].classList.remove('active'); }
+      e.target.classList.add('active');
+      if (e.target.getAttribute('data-tab') === 'view'){
+        tabView.style.display = 'block';
+        tabInput.style.display = 'none';
       } else {
-        tabView.style.display = "none";
-        tabInput.style.display = "block";
+        tabView.style.display = 'none';
+        tabInput.style.display = 'block';
       }
     });
-  });
-
-  // セレクト初期化
-  function initSelectors() {
-    Object.keys(COURSES).forEach(track => {
-      const opt = document.createElement("option");
-      opt.value = track;
-      opt.textContent = track;
-      selTrack.appendChild(opt);
-    });
-    updateDistanceOptions();
   }
 
-  function updateDistanceOptions() {
-    const track = selTrack.value;
-    const surf = selSurface.value;
-    selDist.innerHTML = "";
-    const arr = COURSES[track][surf].distances;
-    arr.forEach(d => {
-      const opt = document.createElement("option");
-      opt.value = d;
-      opt.textContent = d;
-      selDist.appendChild(opt);
-    });
-  }
-
-  selTrack.addEventListener("change", () => {
-    updateDistanceOptions();
-    renderCourse();
-  });
-  selSurface.addEventListener("change", () => {
-    updateDistanceOptions();
-    renderCourse();
-  });
-  selDist.addEventListener("change", renderCourse);
-
-  // コース表示
-  function renderCourse() {
-    const track = selTrack.value;
-    const surf = selSurface.value;
-    const dist = Number(selDist.value);
-
-    const surfData = COURSES[track][surf];
-    const info = (surfData.info && surfData.info[dist]) ? surfData.info[dist] : null;
-    const avg = surfData.defaultAvg || { pass: "-", last3f: "-" };
-
-    const tv = todayValues[track];
-    let cushionTxt = "-";
-    let moistTxt = "-";
-    if (surf === "芝") {
-      cushionTxt = tv.turf.cushion !== "" ? tv.turf.cushion : "-";
-      moistTxt = tv.turf.moisture !== "" ? tv.turf.moisture + "%" : "-%";
-    } else {
-      moistTxt = tv.dirt.moisture !== "" ? tv.dirt.moisture + "%" : "-%";
-    }
-
-    const cushionVal = surf === "芝" ? Number(tv.turf.cushion || 0) : 0;
-    const moistVal = surf === "芝" ? Number(tv.turf.moisture || 0) : Number(tv.dirt.moisture || 0);
-
-    let cushionColor = "#dbe5eb";
-    if (surf === "芝" && cushionVal > 0) {
-      if (cushionVal <= 8) cushionColor = "#f97316";
-      else if (cushionVal <= 10) cushionColor = "#84cc16";
-      else cushionColor = "#60a5fa";
-    }
-    let moistureColor = "#dbe5eb";
-    if (moistVal > 0) {
-      if (moistVal <= 15) moistureColor = "#84cc16";
-      else if (moistVal <= 23) moistureColor = "#fbbf24";
-      else moistureColor = "#f97316";
-    }
-
-    const cushionWidth = Math.min(cushionVal * 9, 100);
-    const moistureWidth = Math.min(moistVal * 3.3, 100);
-
-    courseInfo.innerHTML = `
-      <div class="card course-card" style="background:${surf === "芝" ? "#e6f7e1" : "#d6b38a"};">
-        <div class="course-title">
-          <span class="tag" style="background:${surf === '芝' ? '#22c55e' : '#8b4513'};color:#fff;">
-            ${surf === "芝" ? "芝" : "ダート"}
-          </span>
-          <div style="font-size:1rem;">${track}・${surf}・${dist}m</div>
-        </div>
-        <div class="course-basic">
-          ${info
-            ? `${info.turn}・直線${info.straight}m・${info.slopePlace}（坂高${info.slope}m／高低差${info.diff}m）・${info.start}`
-            : "この距離の詳細はまだ入れていません"}
-        </div>
-        <div class="pill-grid">
-          <div class="pill"><span class="label">回り</span><span class="big">${info ? info.turn : "－"}</span></div>
-          <div class="pill"><span class="label">直線</span><span class="big">${info ? info.straight + "m" : "－"}</span></div>
-          <div class="pill"><span class="label">坂</span><span class="big">${info ? info.slopePlace : "－"}</span></div>
-          <div class="pill"><span class="label">高低差</span><span class="big">${info ? info.diff + "m" : "－"}</span></div>
-          <div class="pill"><span class="label">形状</span><span class="big">${info ? info.shape : "－"}</span></div>
-        </div>
-        <div style="margin-top:10px;font-size:.7rem;font-weight:600;">基準タイム目安</div>
-        <div class="pill-grid">
-          <div class="pill"><span class="label">基準通過</span><span class="big">${avg.pass} 秒</span></div>
-          <div class="pill"><span class="label">基準上がり3F</span><span class="big">${avg.last3f} 秒</span></div>
-        </div>
-        <div style="margin-top:12px;">
-          <div class="label">クッション値</div>
-          <div class="bar"><div class="bar-inner" style="width:${cushionWidth}%;background:${cushionColor};"></div></div>
-          <div class="bar-label-line">
-            <span>${surf === "芝" ? (cushionTxt === "-" ? "入力なし" : cushionTxt) : "芝でのみ表示"}</span>
-            <span>硬め ←→ 柔らかめ</span>
-          </div>
-        </div>
-        <div style="margin-top:6px;">
-          <div class="label">${surf === "芝" ? "芝 含水率" : "ダート 含水率"}</div>
-          <div class="bar"><div class="bar-inner" style="width:${moistureWidth}%;background:${moistureColor};"></div></div>
-          <div class="bar-label-line"><span>${moistTxt}</span><span>良 ←→ 重・不良</span></div>
-        </div>
-        <button class="copy-btn" onclick="copyCardText()">テキストをコピー</button>
-      </div>`;
-  }
-
-  // タブ2の入力リスト
-  function renderInputList() {
+  // --- タブ2の入力欄 ---
+  function renderInputList(){
     inputList.innerHTML = "";
-    Object.keys(COURSES).forEach(track => {
-      const block = document.createElement("div");
-      block.className = "track-input-block";
-      block.innerHTML = `
-        <div style="font-weight:700;margin-bottom:4px;">${track}</div>
-        <div class="inline-inputs">
-          <span style="font-size:.65rem;">芝 クッション</span>
-          <input type="number" step="0.1" data-track="${track}" data-field="turf.cushion" placeholder="10">
-          <span style="font-size:.65rem;">芝 含水</span>
-          <input type="number" step="0.1" data-track="${track}" data-field="turf.moisture" placeholder="20">
-        </div>
-        <div class="inline-inputs">
-          <span style="font-size:.65rem;">ダート 含水</span>
-          <input type="number" step="0.1" data-track="${track}" data-field="dirt.moisture" placeholder="5">
-          <button class="small-btn" data-apply="${track}">反映</button>
-        </div>`;
-      inputList.appendChild(block);
-    });
-    inputList.querySelectorAll("button[data-apply]").forEach(btn => {
-      btn.addEventListener("click", () => {
-        const track = btn.dataset.apply;
-        const inputs = inputList.querySelectorAll(`input[data-track="${track}"]`);
-        inputs.forEach(inp => {
-          const field = inp.dataset.field;
-          const val = inp.value.trim();
-          if (field === "turf.cushion") todayValues[track].turf.cushion = val;
-          if (field === "turf.moisture") todayValues[track].turf.moisture = val;
-          if (field === "dirt.moisture") todayValues[track].dirt.moisture = val;
-        });
-        if (selTrack.value === track) renderCourse();
-      });
-    });
-  }
-
-  // テキストコピー
-  function copyCardText() {
-    const track = selTrack.value;
-    const surf = selSurface.value;
-    const dist = selDist.value;
-    const surfData = COURSES[track][surf];
-    const info = (surfData.info && surfData.info[dist]) ? surfData.info[dist] : null;
-    const avg = surfData.defaultAvg || { pass: "-", last3f: "-" };
-    const tv = todayValues[track];
-    const cushion = surf === "芝" ? (tv.turf.cushion || "-") : "-";
-    const moist = surf === "芝" ? (tv.turf.moisture || "-") : (tv.dirt.moisture || "-");
-    const lines = [];
-    lines.push(`${track}・${surf}・${dist}m`);
-    if (info) {
-      lines.push(`${info.turn}／直線${info.straight}m／高低差${info.diff}m／${info.slopePlace}／${info.start}`);
+    for (var i=0; i<trackNames.length; i++){
+      var tr = trackNames[i];
+      var wrap = document.createElement('div');
+      wrap.className = 'track-input';
+      wrap.innerHTML =
+        '<div style="font-weight:700;margin-bottom:4px;">'+tr+'</div>'+
+        '<div class="input-line">'+
+          '<span style="font-size:.65rem;">芝C</span>'+
+          '<input type="number" step="0.1" class="small-inp" data-track="'+tr+'" data-field="turf.cushion" placeholder="10" />'+
+          '<span style="font-size:.65rem;">芝含</span>'+
+          '<input type="number" step="0.1" class="small-inp" data-track="'+tr+'" data-field="turf.moisture" placeholder="20" />'+
+        '</div>'+
+        '<div class="input-line">'+
+          '<span style="font-size:.65rem;">ダ含</span>'+
+          '<input type="number" step="0.1" class="small-inp" data-track="'+tr+'" data-field="dirt.moisture" placeholder="5" />'+
+          '<button class="small-btn" data-apply="'+tr+'">反映</button>'+
+        '</div>';
+      inputList.appendChild(wrap);
     }
-    lines.push(`基準通過: ${avg.pass}秒`);
-    lines.push(`基準上がり3F: ${avg.last3f}秒`);
-    lines.push(`芝クッション: ${cushion}`);
-    lines.push(`${surf === "芝" ? "芝" : "ダート"}含水: ${moist}%`);
-    navigator.clipboard.writeText(lines.join("\n"));
-    alert("コースメモをコピーしました。");
+
+    // 反映ボタン
+    var applyBtns = inputList.querySelectorAll('button[data-apply]');
+    for (var k=0; k<applyBtns.length; k++){
+      applyBtns[k].addEventListener('click', function(e){
+        var trg = e.target.getAttribute('data-apply');
+        var ins = inputList.querySelectorAll('input[data-track="'+trg+'"]');
+        for (var m=0; m<ins.length; m++){
+          var f = ins[m].getAttribute('data-field');
+          var v = ins[m].value;
+          if (f === 'turf.cushion') { todayValues[trg].turf.cushion = v; }
+          if (f === 'turf.moisture') { todayValues[trg].turf.moisture = v; }
+          if (f === 'dirt.moisture') { todayValues[trg].dirt.moisture = v; }
+        }
+        // 今見てる場なら再描画
+        if (selTrack.value === trg){
+          renderCourse();
+        }
+      });
+    }
   }
 
+  // --- タブ1の表示 ---
+  function renderCourse(){
+    var tr = selTrack.value;
+    var sf = selSurface.value;
+    var dist = Number(selDist.value);
+    var data = COURSES[tr][sf];
+    var info = data.info[dist] || null;
+    var avg = data.base;
+    var tv = todayValues[tr];
+
+    // 表示する数値
+    var cTxt = "-";
+    var mTxt = "-%";
+    var cVal = 0;
+    var mVal = 0;
+    if (sf === "芝"){
+      if (tv.turf.cushion !== "") {
+        cTxt = tv.turf.cushion;
+        cVal = Number(tv.turf.cushion);
+      }
+      if (tv.turf.moisture !== "") {
+        mTxt = tv.turf.moisture + "%";
+        mVal = Number(tv.turf.moisture);
+      }
+    } else {
+      if (tv.dirt.moisture !== "") {
+        mTxt = tv.dirt.moisture + "%";
+        mVal = Number(tv.dirt.moisture);
+      }
+    }
+
+    var cardBg = (sf === "芝") ? "#e6f7e1" : "#d6b38a";
+    var tagBg  = (sf === "芝") ? "#22c55e" : "#8b4513";
+
+    // バー幅
+    var cW = Math.min(cVal * 9, 100);
+    var cColor = "#dbe5eb";
+    if (sf === "芝" && cVal > 0){
+      if (cVal <= 8) cColor = "#f97316";
+      else if (cVal <= 10) cColor = "#84cc16";
+      else cColor = "#60a5fa";
+    }
+    var mW = Math.min(mVal * 3.3, 100);
+    var mColor = "#dbe5eb";
+    if (mVal > 0){
+      if (mVal <= 15) mColor = "#84cc16";
+      else if (mVal <= 23) mColor = "#fbbf24";
+      else mColor = "#f97316";
+    }
+
+    var html = '';
+    html += '<div class="card course-card" style="background:'+cardBg+';">';
+    html += '  <div class="course-title">';
+    html += '    <span class="tag" style="background:'+tagBg+';">'+sf+'</span>';
+    html += '    <div>'+tr+'・'+sf+'・'+dist+'m</div>';
+    html += '  </div>';
+    html += '  <div class="course-basic">';
+    if (info) {
+      html += info.turn+'・直線'+info.straight+'m・'+info.slopePlace+'（坂高'+info.slope+'m／高低差'+info.diff+'m）・'+info.start;
+    } else {
+      html += 'この距離の詳細はまだ入っていません';
+    }
+    html += '  </div>';
+    html += '  <div class="pill-grid">';
+    html += '    <div class="pill"><span class="lbl">回り</span><span class="val">'+(info?info.turn:"－")+'</span></div>';
+    html += '    <div class="pill"><span class="lbl">直線</span><span class="val">'+(info?info.straight+"m":"－")+'</span></div>';
+    html += '    <div class="pill"><span class="lbl">坂</span><span class="val">'+(info?info.slopePlace:"－")+'</span></div>';
+    html += '    <div class="pill"><span class="lbl">高低差</span><span class="val">'+(info?info.diff+"m":"－")+'</span></div>';
+    html += '    <div class="pill"><span class="lbl">形状</span><span class="val">'+(info?info.shape:"－")+'</span></div>';
+    html += '  </div>';
+    html += '  <div style="margin-top:6px;font-size:.7rem;font-weight:600;">基準タイム目安</div>';
+    html += '  <div class="pill-grid">';
+    html += '    <div class="pill"><span class="lbl">基準通過</span><span class="val">'+avg.pass+' 秒</span></div>';
+    html += '    <div class="pill"><span class="lbl">基準上がり3F</span><span class="val">'+avg.last3f+' 秒</span></div>';
+    html += '  </div>';
+    // クッション
+    html += '  <div style="margin-top:10px;">';
+    html += '    <div class="bar"><div class="bar-inner" style="width:'+cW+'%;background:'+cColor+';"></div></div>';
+    html += '    <div class="bar-line"><span>'+(sf==="芝" ? (cTxt==="-"?"クッション値：未入力":"クッション値："+cTxt) : "クッション値：芝のみ")+'</span><span>硬め ←→ 柔らかめ</span></div>';
+    html += '  </div>';
+    // 含水
+    html += '  <div>';
+    html += '    <div class="bar"><div class="bar-inner" style="width:'+mW+'%;background:'+mColor+';"></div></div>';
+    html += '    <div class="bar-line"><span>'+(sf==="芝"?"芝 含水："+mTxt:"ダート 含水："+mTxt)+'</span><span>良 ←→ 重・不良</span></div>';
+    html += '  </div>';
+    html += '  <button class="copy-btn" onclick="copyCardText()">テキストをコピー</button>';
+    html += '</div>';
+
+    courseInfo.innerHTML = html;
+  }
+
+  // --- コピー ---
+  function copyCardText(){
+    var tr = selTrack.value;
+    var sf = selSurface.value;
+    var dist = selDist.value;
+    var data = COURSES[tr][sf];
+    var info = data.info[dist] || null;
+    var avg = data.base;
+    var tv = todayValues[tr];
+    var cTxt = (sf==="芝") ? (tv.turf.cushion || "-") : "-";
+    var mTxt = (sf==="芝") ? (tv.turf.moisture || "-") : (tv.dirt.moisture || "-");
+    var text = tr+"・"+sf+"・"+dist+"m\n";
+    if (info){
+      text += info.turn+"／直線"+info.straight+"m／高低差"+info.diff+"m／"+info.slopePlace+"／"+info.start+"\n";
+    }
+    text += "基準通過: "+avg.pass+"秒\n";
+    text += "基準上がり3F: "+avg.last3f+"秒\n";
+    text += "クッション: "+cTxt+"\n";
+    text += sf+" 含水: "+mTxt+"%\n";
+    try { navigator.clipboard.writeText(text); alert("コピーしました"); } catch(e){}
+  }
+  window.copyCardText = copyCardText;
+
+  // --- 初期化 ---
   initSelectors();
   renderInputList();
   renderCourse();
-  window.copyCardText = copyCardText;
-</script>
+  </script>
+</body>
+</html>
