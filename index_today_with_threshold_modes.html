@@ -1,6 +1,8 @@
-
 <!DOCTYPE html>
-<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <title>本日だけ使う版：目安切り替えつき</title>
 <style>
   :root{ --bg:#f7f7f9;--card:#fff;--border:#e5e7eb;--text:#111;--muted:#6b7280; --turf:#e6f4e6; --dirt:#f0e0d0; }
@@ -11,7 +13,8 @@
   .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
   select,button,input{padding:10px;border:1px solid var(--border);border-radius:12px;background:#fff;font:inherit}
   .feat{border-radius:16px;padding:16px;border:1px solid var(--border);background:var(--card)}
-  .feat.turf{background:var(--turf)} .feat.dirt{background:var(--dirt)}
+  .feat.turf{background:var(--turf)}
+  .feat.dirt{background:var(--dirt)}
   .muted{color:var(--muted);font-size:12px}
   .big{font-size:18px;font-weight:700;margin-bottom:4px}
   .bar{position:relative;height:16px;border-radius:999px;overflow:hidden;border:1px solid var(--border);background:#f0f0f0}
@@ -55,6 +58,7 @@
       </div>
     </div>
 
+    <!-- 目安切り替え -->
     <div class="row" style="margin-top:8px;align-items:center;gap:12px">
       <div class="thbox">
         <label>目安モード
@@ -109,7 +113,169 @@
 </div>
 
 <script>
-const DATA = {"東京": {"meta": {"turn": "左回り", "straight": 526, "elev": 2.0, "slope_h": 1.5, "shape": "大回り"}, "芝": {"1600": {"note": "左回り・直線526m・ゴール前坂あり（坂高1.5m／高低差2.0m）・外回り"}, "2400": {"note": "左回り・直線526m・ゴール前坂あり（坂高1.5m／高低差2.0m）"}}, "ダ": {"1600": {"note": "左回り・直線501m・ゴール前坂あり・芝スタート", "turf_start": true}, "2100": {"note": "左回り・直線501m・ゴール前坂あり"}}}, "中山": {"meta": {"turn": "右回り", "straight": 310, "elev": 5.3, "slope_h": 2.4, "shape": "小回り"}, "芝": {"2000": {"note": "右回り・直線310m・急坂あり（坂高2.4m／高低差5.3m）・内回り"}}, "ダ": {"1800": {"note": "右回り・直線308m・急坂あり（坂高2.4m／高低差5.3m）"}}}, "京都": {"meta": {"turn": "右回り", "straight": 404, "elev": 4.3, "slope_h": 2.0, "shape": "内外あり"}, "芝": {"1600": {"note": "右回り・直線404m・坂あり（坂高2.0m／高低差4.3m）・外回り"}}, "ダ": {"1800": {"note": "右回り・直線329m・坂あり（目安 坂高1.0m／高低差2.0m）"}}}};
+const DATA = {
+  "札幌": {
+    "meta": {"turn":"右回り","straight":266,"elev":0.7,"slope_h":0.3,"shape":"標準"},
+    "芝": {
+      "1200":{"note":"右回り・直線266m・ほぼ平坦（高低差0.7m）・小回り"},
+      "1500":{"note":"右回り・直線266m・平坦基調（高低差0.7m）・小回り"},
+      "1800":{"note":"右回り・直線266m・平坦基調（高低差0.7m）"},
+      "2000":{"note":"右回り・直線266m・平坦基調（高低差0.7m）"},
+      "2600":{"note":"右回り・直線266m・平坦基調（高低差0.7m）"}
+    },
+    "ダ": {
+      "1000":{"note":"右回り・直線264m相当・ほぼ平坦（高低差0.7m）"},
+      "1700":{"note":"右回り・直線264m相当・わずかに起伏（高低差0.7m）"},
+      "2400":{"note":"右回り・直線264m相当・わずかに起伏（高低差0.7m）"}
+    }
+  },
+  "函館": {
+    "meta": {"turn":"右回り","straight":262,"elev":3.4,"slope_h":1.8,"shape":"小回り"},
+    "芝": {
+      "1000":{"note":"右回り・直線262m・ゴール前坂あり（坂高1.8m／高低差3.4m）・小回り"},
+      "1200":{"note":"右回り・直線262m・坂あり（坂高1.8m／高低差3.4m）・小回り"},
+      "1800":{"note":"右回り・直線262m・坂あり（坂高1.8m／高低差3.4m）"},
+      "2000":{"note":"右回り・直線262m・坂あり（坂高1.8m／高低差3.4m）"}
+    },
+    "ダ": {
+      "1000":{"note":"右回り・直線260m・坂あり（坂高1.8m／高低差3.4m）"},
+      "1700":{"note":"右回り・直線260m・坂あり（坂高1.8m／高低差3.4m）"}
+    }
+  },
+  "福島": {
+    "meta": {"turn":"右回り","straight":292,"elev":1.9,"slope_h":1.0,"shape":"小回り"},
+    "芝": {
+      "1000":{"note":"右回り・直線292m・坂あり（坂高1.0m／高低差1.9m）・小回り"},
+      "1200":{"note":"右回り・直線292m・坂あり（坂高1.0m／高低差1.9m）・小回り"},
+      "1800":{"note":"右回り・直線292m・坂あり（坂高1.0m／高低差1.9m）"},
+      "2000":{"note":"右回り・直線292m・坂あり（坂高1.0m／高低差1.9m）"}
+    },
+    "ダ": {
+      "1150":{"note":"右回り・直線295m・坂あり（坂高1.0m／高低差1.9m）"},
+      "1700":{"note":"右回り・直線295m・坂あり（坂高1.0m／高低差1.9m）"},
+      "2400":{"note":"右回り・直線295m・坂あり（坂高1.0m／高低差1.9m）"}
+    }
+  },
+  "新潟": {
+    "meta": {"turn":"左回り","straight":659,"elev":0.0,"slope_h":0.0,"shape":"大回り・直線長"},
+    "芝": {
+      "1000":{"note":"直線コース・坂なし・直線659m・平坦"},
+      "1200":{"note":"左回り・直線659m・坂なし・外回り"},
+      "1400":{"note":"左回り・直線659m・坂なし・外回り"},
+      "1600":{"note":"左回り・直線659m・坂なし・外回り"},
+      "1800":{"note":"左回り・直線659m・坂なし"},
+      "2000":{"note":"左回り・直線659m・坂なし"},
+      "2200":{"note":"左回り・直線659m・坂なし"}
+    },
+    "ダ": {
+      "1200":{"note":"左回り・直線353m・坂なし・平坦"},
+      "1800":{"note":"左回り・直線353m・坂なし・平坦"},
+      "2500":{"note":"左回り・直線353m・坂なし・平坦"}
+    }
+  },
+  "東京": {
+    "meta": {"turn":"左回り","straight":526,"elev":2.0,"slope_h":1.5,"shape":"大回り"},
+    "芝": {
+      "1400":{"note":"左回り・直線526m・ゴール前坂あり（坂高1.5m／高低差2.0m）・外回り"},
+      "1600":{"note":"左回り・直線526m・ゴール前坂あり（坂高1.5m／高低差2.0m）・外回り"},
+      "1800":{"note":"左回り・直線526m・ゴール前坂あり（坂高1.5m／高低差2.0m）"},
+      "2000":{"note":"左回り・直線526m・ゴール前坂あり（坂高1.5m／高低差2.0m）・2コーナー発走"},
+      "2400":{"note":"左回り・直線526m・ゴール前坂あり（坂高1.5m／高低差2.0m）"},
+      "2500":{"note":"左回り・直線526m・ゴール前坂あり（坂高1.5m／高低差2.0m）"},
+      "3400":{"note":"左回り・直線526m・ゴール前坂あり（坂高1.5m／高低差2.0m）"}
+    },
+    "ダ": {
+      "1300":{"note":"左回り・直線501m・ゴール前坂あり（坂高1.5m／高低差2.0m）"},
+      "1400":{"note":"左回り・直線501m・ゴール前坂あり（坂高1.5m／高低差2.0m）"},
+      "1600":{"note":"左回り・直線501m・ゴール前坂あり（坂高1.5m／高低差2.0m）・芝スタート","turf_start":true},
+      "2100":{"note":"左回り・直線501m・ゴール前坂あり（坂高1.5m／高低差2.0m）"}
+    }
+  },
+  "中山": {
+    "meta": {"turn":"右回り","straight":310,"elev":5.3,"slope_h":2.4,"shape":"小回り"},
+    "芝": {
+      "1200":{"note":"右回り・直線310m・急坂あり（坂高2.4m／高低差5.3m）・小回り"},
+      "1600":{"note":"右回り・直線310m・急坂あり（坂高2.4m／高低差5.3m）・外回り"},
+      "1800":{"note":"右回り・直線310m・急坂あり（坂高2.4m／高低差5.3m）"},
+      "2000":{"note":"右回り・直線310m・急坂あり（坂高2.4m／高低差5.3m）・内回り"},
+      "2200":{"note":"右回り・直線310m・急坂あり（坂高2.4m／高低差5.3m）"},
+      "2500":{"note":"右回り・直線310m・急坂あり（坂高2.4m／高低差5.3m）"}
+    },
+    "ダ": {
+      "1200":{"note":"右回り・直線308m・急坂あり（坂高2.4m／高低差5.3m）"},
+      "1800":{"note":"右回り・直線308m・急坂あり（坂高2.4m／高低差5.3m）"}
+    }
+  },
+  "中京": {
+    "meta": {"turn":"左回り","straight":412,"elev":3.5,"slope_h":2.0,"shape":"標準"},
+    "芝": {
+      "1200":{"note":"左回り・直線412m・ゴール前坂あり（坂高2.0m／高低差3.5m）"},
+      "1400":{"note":"左回り・直線412m・坂あり（坂高2.0m／高低差3.5m）"},
+      "1600":{"note":"左回り・直線412m・坂あり（坂高2.0m／高低差3.5m）"},
+      "2000":{"note":"左回り・直線412m・坂あり（坂高2.0m／高低差3.5m）"},
+      "2200":{"note":"左回り・直線412m・坂あり（坂高2.0m／高低差3.5m）"}
+    },
+    "ダ": {
+      "1200":{"note":"左回り・直線375m・坂あり（坂高2.0m／高低差3.5m）"},
+      "1400":{"note":"左回り・直線375m・坂あり（坂高2.0m／高低差3.5m）・芝スタート","turf_start":true},
+      "1800":{"note":"左回り・直線375m・坂あり（坂高2.0m／高低差3.5m）"},
+      "1900":{"note":"左回り・直線375m・坂あり（坂高2.0m／高低差3.5m）"}
+    }
+  },
+  "京都": {
+    "meta": {"turn":"右回り","straight":404,"elev":4.3,"slope_h":2.0,"shape":"内外あり"},
+    "芝": {
+      "1200":{"note":"右回り・直線404m・ゴール前坂あり（坂高2.0m／高低差4.3m）・内回り"},
+      "1400":{"note":"右回り・直線404m・ゴール前坂あり（坂高2.0m／高低差4.3m）・内回り"},
+      "1600":{"note":"右回り・直線404m・坂あり（坂高2.0m／高低差4.3m）・外回り"},
+      "1800":{"note":"右回り・直線404m・坂あり（坂高2.0m／高低差4.3m）・外回り"},
+      "2000":{"note":"右回り・直線404m・坂あり（坂高2.0m／高低差4.3m）・内回り"},
+      "2200":{"note":"右回り・直線328m・坂あり（坂高2.0m／高低差4.3m）・内回り"},
+      "2400":{"note":"右回り・直線404m・坂あり（坂高2.0m／高低差4.3m）・外回り"},
+      "3000":{"note":"右回り・直線404m・坂あり（坂高2.0m／高低差4.3m）・内回り"},
+      "3200":{"note":"右回り・直線404m・坂あり（坂高2.0m／高低差4.3m）・外回り"}
+    },
+    "ダ": {
+      "1200":{"note":"右回り・直線329m・概ね平坦（高低差2.0m）"},
+      "1400":{"note":"右回り・直線329m・概ね平坦（高低差2.0m）"},
+      "1800":{"note":"右回り・直線329m・坂あり（目安 坂高1.0m／高低差2.0m）"},
+      "1900":{"note":"右回り・直線329m・坂あり（目安 坂高1.0m／高低差2.0m）"}
+    }
+  },
+  "阪神": {
+    "meta": {"turn":"右回り","straight":473,"elev":1.8,"slope_h":1.2,"shape":"外回りあり"},
+    "芝": {
+      "1200":{"note":"右回り・直線356m（内回り）・坂あり（坂高1.2m／高低差1.8m）"},
+      "1400":{"note":"右回り・直線473m（外回り）・坂あり（坂高1.2m／高低差1.8m）"},
+      "1600":{"note":"右回り・外回り・直線473m・坂あり（坂高1.2m／高低差1.8m）"},
+      "1800":{"note":"右回り・外回り・直線473m・坂あり（坂高1.2m／高低差1.8m）"},
+      "2000":{"note":"右回り・内回り・直線356m・坂あり（坂高1.2m／高低差1.8m）"},
+      "2200":{"note":"右回り・外回り・直線473m・坂あり（坂高1.2m／高低差1.8m）"},
+      "2400":{"note":"右回り・外回り・直線473m・坂あり（坂高1.2m／高低差1.8m）"}
+    },
+    "ダ": {
+      "1200":{"note":"右回り・直線352m・坂あり（坂高1.2m／高低差1.8m）"},
+      "1400":{"note":"右回り・直線352m・坂あり（坂高1.2m／高低差1.8m）"},
+      "1800":{"note":"右回り・直線352m・坂あり（坂高1.2m／高低差1.8m）・芝スタートの番組あり","turf_start":true},
+      "2000":{"note":"右回り・直線352m・坂あり（坂高1.2m／高低差1.8m）"}
+    }
+  },
+  "小倉": {
+    "meta": {"turn":"右回り","straight":293,"elev":2.8,"slope_h":1.0,"shape":"小回り"},
+    "芝": {
+      "1200":{"note":"右回り・直線293m・坂なし〜緩やか（高低差2.8m）・小回り"},
+      "1700":{"note":"右回り・直線293m・小回り・起伏あり（高低差2.8m）"},
+      "1800":{"note":"右回り・直線293m・起伏あり（高低差2.8m）"},
+      "2000":{"note":"右回り・直線293m・起伏あり（高低差2.8m）"}
+    },
+    "ダ": {
+      "1000":{"note":"右回り・直線291m・平坦寄り（高低差2.8m）"},
+      "1700":{"note":"右回り・直線291m・やや起伏（高低差2.8m）"},
+      "2400":{"note":"右回り・直線291m・やや起伏（高低差2.8m）"}
+    }
+  }
+};
+
 const $ = (q, el=document)=> el.querySelector(q);
 const selT = $("#selTrack"), selS = $("#selSurf"), selD = $("#selDist");
 const title = $("#title"), line1 = $("#line1"), line2 = $("#line2"), meta = $("#meta"), card = $("#card");
@@ -129,8 +295,10 @@ function init(){
   $("#applyCond").onclick = applyCond;
   $("#clearCond").onclick = clearCond;
   selMode.onchange = onModeChange;
-  $("#applyTh").onclick = ()=>{ thresholds.custom = [Number(th1.value)||10, Number(th2.value)||15, Number(th3.value)||20]; updateBars(); updateLegend(); };
-
+  $("#applyTh").onclick = ()=>{
+    thresholds.custom = [Number(th1.value)||10, Number(th2.value)||15, Number(th3.value)||20];
+    updateBars(); updateLegend();
+  };
   refreshDists(); render(); updateLegend();
 }
 
@@ -153,13 +321,17 @@ function updateLegend(){
   el.innerHTML = `<span>良（≦${th[0]}%）</span><span>稍重（≦${th[1]}%）</span><span>重（≦${th[2]}%）</span><span>不良（＞${th[2]}%）</span>`;
 }
 
-function onChangeSel(){ refreshDists(); render(); updateBars(); updateLegend(); }
+function onChangeSel(){
+  refreshDists(); render(); updateBars(); updateLegend();
+}
 
 function refreshDists(){
   selD.innerHTML="";
   const t = selT.value, s = selS.value;
   const dists = Object.keys(DATA[t][s]).sort((a,b)=>Number(a)-Number(b));
-  dists.forEach(d=>{ const o=document.createElement('option'); o.value=d; o.textContent=d; selD.appendChild(o); });
+  dists.forEach(d=>{
+    const o=document.createElement('option'); o.value=d; o.textContent=d; selD.appendChild(o);
+  });
 }
 
 function render(){
@@ -190,13 +362,26 @@ function labelMoist(val){
 
 function applyCond(){
   const cv = Number(inCv.value), mo = Number(inMo.value);
-  if (isFinite(cv)){ window.__cv = cv; setBar("barCv","labCv", cv, 7.0, 11.5, v=> "CV " + v.toFixed(1)); }
-  if (isFinite(mo)){ window.__mo = mo; setBar("barMo","labMo", mo, 0, 25, v=> labelMoist(mo)); }
+  if (isFinite(cv)){
+    window.__cv = cv;
+    setBar("barCv","labCv", cv, 7.0, 11.5, v=> "CV " + v.toFixed(1));
+  }
+  if (isFinite(mo)){
+    window.__mo = mo;
+    setBar("barMo","labMo", mo, 0, 25, v=> labelMoist(mo));
+  }
 }
 
 function updateBars(){
-  if (window.__cv != null) setBar("barCv","labCv", window.__cv, 7.0, 11.5, v=> "CV " + v.toFixed(1)); else setBar("barCv","labCv", 0, 7.0, 11.5, ()=>"—");
-  if (window.__mo != null) setBar("barMo","labMo", window.__mo, 0, 25, v=> labelMoist(window.__mo)); else setBar("barMo","labMo", 0, 25, ()=>"—");
+  if (window.__cv != null)
+    setBar("barCv","labCv", window.__cv, 7.0, 11.5, v=> "CV " + v.toFixed(1));
+  else
+    setBar("barCv","labCv", 0, 7.0, 11.5, ()=>"—");
+
+  if (window.__mo != null)
+    setBar("barMo","labMo", window.__mo, 0, 25, v=> labelMoist(window.__mo));
+  else
+    setBar("barMo","labMo", 0, 25, ()=>"—");
 }
 
 function clearCond(){
@@ -213,9 +398,15 @@ async function copyText(){
   const metaLine = meta.textContent;
   const today = `\n[本日の馬場] CV ${window.__cv ?? "—"} / 含水 ${window.__mo ?? "—"}% （目安: ${selMode.value}）`;
   const text = `${tLine}\n${l1}\n${l2}${metaLine}${today}`;
-  try{ await navigator.clipboard.writeText(text); alert("コピーしました"); }catch(e){ alert("コピーできませんでした"); }
+  try{
+    await navigator.clipboard.writeText(text);
+    alert("コピーしました");
+  }catch(e){
+    alert("コピーできませんでした");
+  }
 }
 
 init();
 </script>
-</body></html>
+</body>
+</html>
