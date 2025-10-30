@@ -288,6 +288,7 @@
       html += '  <div class="bar-line"><span>'+(s==="芝"?"芝 含水："+mTxt:"ダート 含水："+mTxt)+'</span><span>良 ←→ 重・不良</span></div>';
       html += '</div>';
       courseInfo.innerHTML = html;
+      window.addEventListener("load", renderRaceData);
     }
 
     // 8) 初期化
