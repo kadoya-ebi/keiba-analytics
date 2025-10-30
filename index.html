@@ -12,32 +12,34 @@
       color: #12212d;
     }
     header {
-      background: #0f766e;
-      color: #fff;
-      padding: 14px 16px 8px;
-    }
-    header h1 { margin: 0; font-size: 1.05rem; }
-    header small { font-size: .7rem; opacity: .8; }
-   ..tabs {
+  background: #0f766e; /* 濃い緑のまま */
+  color: #fff;
+  padding: 14px 16px 8px;
+}
+
+.tabs {
   display: flex;
   gap: 8px;
-  background: #d7ebe9; /* やや緑寄りの淡いトーン */
-  padding: 10px 14px .tab-btn {
+  background: #d7ebe9; /* ←ちょっとだけ薄い緑。ここは帯 */
+  padding: 10px 14px 6px;
+}
+
+/* 非アクティブのタブ */
+.tab-btn {
   flex: 1;
   border: none;
-  background: rgba(255,255,255,.25); /* ← 少し濃くして視認性UP */
+  background: rgba(15,118,110,0.35); /* ← ちゃんと色がつくように緑ベースにする */
   border-radius: 999px;
   padding: 8px 0 7px;
-  color: #e8f3f2; /* ← 少し明るめの緑がかった白 */
+  color: #ffffff;
   font-weight: 600;
   font-size: .8rem;
   transition: all .2s ease;
 }
-.tab-btn:hover {
-  background: rgba(255,255,255,.35);
-}
+
+/* 選択中のタブ */
 .tab-btn.active {
-  background: #fff;
+  background: #ffffff;
   color: #0f766e;
   box-shadow: 0 4px 12px rgba(0,0,0,.15);
 }
