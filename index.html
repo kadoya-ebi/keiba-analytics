@@ -211,25 +211,24 @@
     }
   };
 
-  // --- 今日の値（ここにタブ2で入れたのを保存） ---
+  // --- 今日の値 ---
   var todayValues = {};
   var trackNames = Object.keys(COURSES);
   for (var i=0; i<trackNames.length; i++) {
-    var t = trackNames[i];
-    todayValues[t] = {
+    todayValues[trackNames[i]] = {
       turf: { cushion: "", moisture: "" },
       dirt: { moisture: "" }
     };
   }
 
-  // --- DOM取得 ---
+  // --- DOM ---
   var selTrack = document.getElementById('selTrack');
   var selSurface = document.getElementById('selSurface');
   var selDist = document.getElementById('selDist');
   var courseInfo = document.getElementById('courseInfo');
   var inputList = document.getElementById('inputList');
 
-  // タブ切替
+  // --- タブ切替 ---
   var tabView = document.getElementById('tab-view');
   var tabInput = document.getElementById('tab-input');
   var tabBtns = document.querySelectorAll('.tab-btn');
@@ -281,7 +280,7 @@
   });
   selDist.addEventListener('change', renderCourse);
 
-  // --- タブ2の入力欄 ---
+  // --- タブ2（入力）を作る ---
   function renderInputList(){
     inputList.innerHTML = "";
     for (var i=0; i<trackNames.length; i++){
@@ -304,21 +303,36 @@
       inputList.appendChild(wrap);
     }
 
-    // 反映ボタンの動作
-    var applyBtns = inputList.querySelectorAll('button[data-apply]');
-    for (var k=0; k<applyBtns.length; k++){
-      applyBtns[k].addEventListener('click', function(e){
-        var trg = e.target.getAttribute('data-apply');
-        // 入力されてる3つを読む
-        var ins = inputList.querySelectorAll('input[data-track="'+trg+'"]');
-        for (var m=0; m<ins.length; m++){
-          var f = ins[m].getAttribute('data-field');
-          var v = ins[m].value;
-          if (f === 'turf.cushion')  { todayValues[trg].turf.cushion  = v; }
-          if (f === 'turf.moisture') { todayValues[trg].turf.moisture = v; }
-          if (f === 'dirt.moisture') { todayValues[trg].dirt.moisture = v; }
+    // ① 入力した瞬間に値を保存＆再描画
+    var allInputs = inputList.querySelectorAll('input[data-track]');
+    for (var k=0; k<allInputs.length; k++){
+      allInputs[k].addEventListener('input', function(e){
+        var tr = e.target.getAttribute('data-track');
+        var field = e.target.getAttribute('data-field');
+        var val = e.target.value;
+        if (field === 'turf.cushion')  todayValues[tr].turf.cushion  = val;
+        if (field === 'turf.moisture') todayValues[tr].turf.moisture = val;
+        if (field === 'dirt.moisture') todayValues[tr].dirt.moisture = val;
+        // 今表示中の競馬場だったらすぐ反映
+        if (selTrack.value === tr) {
+          renderCourse();
         }
-        // 今タブ1でこの競馬場を見てたら、すぐ描き直す
+      });
+    }
+
+    // ② ボタンでも一応反映できるようにしておく（保険）
+    var applyBtns = inputList.querySelectorAll('button[data-apply]');
+    for (var m=0; m<applyBtns.length; m++){
+      applyBtns[m].addEventListener('click', function(e){
+        var trg = e.target.getAttribute('data-apply');
+        var ins = inputList.querySelectorAll('input[data-track="'+trg+'"]');
+        for (var n=0; n<ins.length; n++){
+          var f = ins[n].getAttribute('data-field');
+          var v = ins[n].value;
+          if (f === 'turf.cushion')  todayValues[trg].turf.cushion  = v;
+          if (f === 'turf.moisture') todayValues[trg].turf.moisture = v;
+          if (f === 'dirt.moisture') todayValues[trg].dirt.moisture = v;
+        }
         if (selTrack.value === trg) {
           renderCourse();
         }
@@ -336,7 +350,6 @@
     var avg = data.base;
     var tv = todayValues[tr];
 
-    // 表示用の数値
     var cTxt = "-";
     var mTxt = "-%";
     var cVal = 0;
@@ -360,7 +373,6 @@
     var cardBg = (sf === "芝") ? "#e6f7e1" : "#d6b38a";
     var tagBg  = (sf === "芝") ? "#22c55e" : "#8b4513";
 
-    // バーの幅と色
     var cW = Math.min(cVal * 9, 100);
     var cColor = "#dbe5eb";
     if (sf === "芝" && cVal > 0) {
@@ -417,7 +429,7 @@
     courseInfo.innerHTML = html;
   }
 
-  // --- コピー機能 ---
+  // --- コピー ---
   function copyCardText(){
     var tr = selTrack.value;
     var sf = selSurface.value;
@@ -444,6 +456,5 @@
   initSelectors();
   renderInputList();
   renderCourse();
-</script>
-</body>
+</script>/body>
 </html>
