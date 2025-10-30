@@ -1,111 +1,500 @@
 <!doctype html>
 <html lang="ja">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>JRAコース早見（段階カラー版）</title>
-<style>
-  body{font-family:sans-serif;background:#f5f6f8;margin:0;color:#0f172a}
-  header{background:#0f766e;color:#fff;padding:14px 16px;font-weight:700}
-  .tabs{display:flex;gap:8px;background:#f5f6f8;padding:10px}
-  .tab-btn{flex:1;border:none;border-radius:9999px;padding:8px 10px;font-weight:600;color:#64748b;background:rgba(255,255,255,.0)}
-  .tab-btn.active{background:#fff;color:#0f172a;box-shadow:0 4px 14px rgba(15,118,110,.15)}
-  .page{display:none;padding:12px}
-  .page.active{display:block}
-  .card{background:#fff;border-radius:16px;padding:14px;margin-bottom:12px;box-shadow:0 4px 20px rgba(15,23,42,.03)}
-  .bar-wrapper{margin-top:10px}
-  .bar-label{display:flex;justify-content:space-between;font-size:.7rem;color:#64748b;margin-bottom:3px}
-  .bar-track{height:8px;background:#e2e8f0;border-radius:9999px;overflow:hidden}
-  .bar-fill{height:100%;width:0;transition:width .3s}
-</style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>JRAコース早見（本日入力版）</title>
+  <style>
+    :root {
+      --bg: #f5f6f8;
+      --card: #ffffff;
+      --accent: #0f766e;
+      --accent-soft: #d1fae5;
+      --text: #0f172a;
+      --muted: #64748b;
+      --danger: #ef4444;
+      --border: #e2e8f0;
+    }
+    body {
+      margin: 0;
+      background: var(--bg);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--text);
+    }
+    header {
+      background: var(--accent);
+      color: #fff;
+      padding: 14px 16px 10px;
+      font-size: 1.25rem;
+      font-weight: 700;
+    }
+    header small {
+      display: block;
+      font-weight: 400;
+      font-size: .7rem;
+      opacity: .8;
+    }
+    .tabs {
+      display: flex;
+      gap: 6px;
+      padding: 10px 12px 4px;
+      background: var(--bg);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    .tab-btn {
+      border: none;
+      background: rgba(255,255,255,.0);
+      padding: 7px 14px 6px;
+      border-radius: 9999px;
+      font-weight: 600;
+      font-size: .85rem;
+      color: var(--muted);
+    }
+    .tab-btn.active {
+      background: #fff;
+      color: var(--text);
+      box-shadow: 0 5px 18px rgba(15,118,110,.12);
+    }
+    .page {
+      display: none;
+      padding: 10px 12px 50px;
+    }
+    .page.active {
+      display: block;
+    }
+    .card {
+      background: var(--card);
+      border-radius: 18px;
+      padding: 16px 16px 14px;
+      box-shadow: 0 10px 30px rgba(15,23,42,.02);
+      border: 1px solid rgba(226,232,240,.4);
+      margin-bottom: 14px;
+    }
+    h2.section-title {
+      margin: 0 0 10px;
+      font-size: 1.1rem;
+    }
+    label {
+      display: block;
+      font-size: .7rem;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+    select {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 9px 12px;
+      font-size: .9rem;
+      background: #fff;
+    }
+    .field {
+      margin-bottom: 12px;
+    }
+    .course-header {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+    .surface-pill {
+      background: #e0f2f1;
+      color: #064e3b;
+      font-weight: 600;
+      border-radius: 9999px;
+      padding: 3px 10px 2px;
+      font-size: .7rem;
+    }
+    .course-title {
+      font-size: 1.05rem;
+      font-weight: 700;
+    }
+    .course-text {
+      font-size: .8rem;
+      line-height: 1.5;
+      margin-bottom: 6px;
+    }
+    .inline-meta {
+      font-size: .75rem;
+      color: var(--muted);
+      margin-bottom: 10px;
+    }
+    .info-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 6px;
+      margin-bottom: 6px;
+    }
+    .info-box {
+      background: #f8fafc;
+      border: 1px solid rgba(209,213,219,.4);
+      border-radius: 14px;
+      padding: 6px 9px 4px;
+    }
+    .info-label {
+      font-size: .65rem;
+      color: var(--muted);
+      margin-bottom: 2px;
+    }
+    .info-value {
+      font-size: .85rem;
+      font-weight: 600;
+    }
+    .bar-wrapper {
+      margin-bottom: 6px;
+    }
+    .bar-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: .65rem;
+      color: var(--muted);
+      margin-bottom: 3px;
+    }
+    .bar-track {
+      height: 7px;
+      background: #e2e8f0;
+      border-radius: 9999px;
+      overflow: hidden;
+    }
+    .bar-fill {
+      height: 100%;
+      background: #0f766e;
+      width: 0;
+      transition: width .2s;
+    }
+    .sub-text {
+      font-size: .7rem;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+    .input-row {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 6px;
+    }
+    .small-input {
+      flex: 1;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 6px 10px 5px;
+      font-size: .8rem;
+    }
+    .small-btn {
+      border: none;
+      background: var(--accent);
+      color: #fff;
+      border-radius: 12px;
+      padding: 5px 12px 4px;
+      font-size: .75rem;
+    }
+    .track-btn {
+      border: none;
+      background: #fff;
+      border: 1px solid rgba(15,118,110,.15);
+      color: #0f766e;
+      border-radius: 9999px;
+      padding: 3px 12px 3px;
+      font-size: .7rem;
+    }
+    .table-like {
+      font-size: .72rem;
+      border-bottom: 1px solid rgba(226,232,240,.5);
+      padding: 6px 0 7px;
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+    .tag {
+      background: rgba(15,118,110,.08);
+      color: #0f766e;
+      border-radius: 9999px;
+      padding: 2px 8px;
+      font-size: .6rem;
+      font-weight: 600;
+    }
+    @media (min-width:700px){
+      .page{max-width: 640px;margin:0 auto;}
+    }
+  </style>
 </head>
 <body>
-  <header>JRAコース早見<small style="display:block;font-weight:400;font-size:.7rem;opacity:.8">段階カラー表示</small></header>
+  <header>
+    JRAコース早見
+    <small>本日入力版（タブ2でまとめて入力 → タブ1に表示）</small>
+  </header>
+
   <div class="tabs">
-    <button class="tab-btn active" data-tab="view">タブ1：見る</button>
-    <button class="tab-btn" data-tab="input">タブ2：入力</button>
+    <button class="tab-btn active" data-tab="view">タブ1：見る用</button>
+    <button class="tab-btn" data-tab="input">タブ2：今日の数値を入れる</button>
   </div>
-  <div class="page active" id="view">
+
+  <!-- タブ1：見るだけ -->
+  <div class="page active" id="page-view">
     <div class="card">
-      <label>競馬場</label>
-      <select id="selCourse"><option>東京</option><option>中山</option><option>京都</option></select>
-      <label>馬場</label>
-      <select id="selSurface"><option value="芝">芝</option><option value="ダート">ダート</option></select>
-      <label>距離</label>
-      <select id="selDistance"><option>2000</option><option>1600</option></select>
+      <h2 class="section-title">1) 選ぶ</h2>
+      <div class="field">
+        <label>競馬場</label>
+        <select id="selCourse">
+          <option>東京</option>
+          <option>中山</option>
+          <option>京都</option>
+          <option>阪神</option>
+          <option>小倉</option>
+          <option>新潟</option>
+          <option>中京</option>
+          <option>札幌</option>
+          <option>函館</option>
+          <option>福島</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>馬場</label>
+        <select id="selSurface">
+          <option value="芝">芝</option>
+          <option value="ダート">ダート</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>距離</label>
+        <select id="selDistance">
+          <option value="2000">2000</option>
+          <option value="1600">1600</option>
+          <option value="1800">1800</option>
+          <option value="1200">1200</option>
+          <option value="2400">2400</option>
+        </select>
+      </div>
+      <button id="btnCopy" class="small-btn" style="width:100%;">テキストをコピー</button>
+      <p class="sub-text">※ページを閉じるとリセット。今日だけのメモ用。</p>
     </div>
-    <div class="card" id="viewCard"></div>
+
+    <div class="card" id="viewCard">
+      <!-- JSで埋める -->
+    </div>
   </div>
-  <div class="page" id="input">
-    <div class="card" id="inputCard"></div>
+
+  <!-- タブ2：全場入力 -->
+  <div class="page" id="page-input">
+    <div class="card">
+      <h2 class="section-title">今日の馬場傾向をまとめて入力</h2>
+      <p class="sub-text">1行ずつ入れていくと、タブ1に反映されます（同じキーなら上書き）。</p>
+    </div>
+    <div id="inputList"></div>
   </div>
-<script>
-const allCourses=["東京","中山","京都"];
-const todayTrack={};
 
-function colorByCushion(v){
- if(v===null||v===0)return"#e5e7eb";
- if(v>=10.5)return"#16a34a";
- if(v>=9)return"#a3e635";
- if(v>=8)return"#facc15";
- return"#f97316";
-}
-function colorByWater(v){
- if(v===null||v===0)return"#e5e7eb";
- if(v<=10)return"#16a34a";
- if(v<=20)return"#facc15";
- if(v<=30)return"#f97316";
- return"#ef4444";
-}
+  <script>
+    // コース情報のベース
+    const baseCourses = {
+      "東京-芝-2000": {
+        course: "東京",
+        surface: "芝",
+        dist: 2000,
+        turn: "左回り",
+        straight: 526,
+        slope: "ゴール前坂あり",
+        slopeH: 1.5,
+        elevation: 2.0,
+        start: "2コーナー発走",
+        shape: "大回り",
+        basePass: 58.2,
+        base3f: 34.1
+      },
+      "中山-芝-2000": {
+        course: "中山",
+        surface: "芝",
+        dist: 2000,
+        turn: "右回り",
+        straight: 310,
+        slope: "ゴール前急坂",
+        slopeH: 2.4,
+        elevation: 5.3,
+        start: "スタンド前発走",
+        shape: "小回り",
+        basePass: 60.5,
+        base3f: 35.2
+      },
+      "京都-芝-2000": {
+        course: "京都",
+        surface: "芝",
+        dist: 2000,
+        turn: "右回り",
+        straight: 404,
+        slope: "ゴール前わずか",
+        slopeH: 1.8,
+        elevation: 3.0,
+        start: "2コーナー奥",
+        shape: "外回り",
+        basePass: 59.8,
+        base3f: 34.6
+      }
+    };
 
-const inputCard=document.getElementById('inputCard');
-allCourses.forEach(c=>{
- const div=document.createElement('div');
- div.className='bar-wrapper';
- div.innerHTML=`<div style='font-weight:700;margin-bottom:6px;'>${c}</div>
- <div><label>芝 クッション</label><input type='number' step='0.1' min='5' max='12' id='${c}-芝-cush' style='width:70px;'>
- <label>芝 含水</label><input type='number' step='0.1' min='0' max='40' id='${c}-芝-water' style='width:70px;'></div>
- <div><label>ダート 含水</label><input type='number' step='0.1' min='0' max='40' id='${c}-ダート-water' style='width:70px;'></div>
- <button onclick='applyOne("${c}")'>反映</button><hr>`;
- inputCard.appendChild(div);
-});
+    // 今日の入力値をここに保存（タブ2で上書き）
+    // key: "東京-芝" → {cush:10, water:18}
+    const todayTrack = {};
 
-function applyOne(c){
- const cC=parseFloat(document.getElementById(`${c}-芝-cush`).value)||null;
- const cW=parseFloat(document.getElementById(`${c}-芝-water`).value)||null;
- const dW=parseFloat(document.getElementById(`${c}-ダート-water`).value)||null;
- todayTrack[c+"-芝"]={cush:cC,water:cW};
- todayTrack[c+"-ダート"]={cush:null,water:dW};
- renderView();
-}
+    // タブ切り替え
+    document.querySelectorAll(".tab-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll(".tab-btn").forEach(b=>b.classList.remove("active"));
+        btn.classList.add("active");
+        const tab = btn.dataset.tab;
+        document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
+        document.getElementById("page-" + tab).classList.add("active");
+      });
+    });
 
-function renderView(){
- const c=document.getElementById('selCourse').value;
- const s=document.getElementById('selSurface').value;
- const d=document.getElementById('selDistance').value;
- const today=todayTrack[c+"-"+s]||{};
- const cush=today.cush??0;
- const water=today.water??0;
- const bar1=colorByCushion(cush);
- const bar2=colorByWater(water);
- const view=document.getElementById('viewCard');
- view.innerHTML=`<div style='font-weight:700;font-size:1rem;margin-bottom:6px;'>${c} ${s} ${d}m</div>
- <div class='bar-wrapper'><div class='bar-label'><span>クッション値 ${cush||'-'}</span></div><div class='bar-track'><div class='bar-fill' style='width:${(cush/12)*100}%;background:${bar1}'></div></div></div>
- <div class='bar-wrapper'><div class='bar-label'><span>含水率 ${water||'-'}%</span></div><div class='bar-track'><div class='bar-fill' style='width:${(water/40)*100}%;background:${bar2}'></div></div></div>`;
-}
-['selCourse','selSurface','selDistance'].forEach(id=>{
- document.getElementById(id).addEventListener('change',renderView);
-});
-renderView();
+    // タブ2：一覧をつくる
+    const allCourses = ["東京","中山","京都","阪神","小倉","新潟","中京","札幌","函館","福島"];
+    const inputListEl = document.getElementById("inputList");
+    allCourses.forEach(name => {
+      const wrap = document.createElement("div");
+      wrap.className = "card";
+      wrap.innerHTML = `
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+          <div style="font-weight:700;">${name}</div>
+          <div style="display:flex;gap:4px;">
+            <span class="tag">芝</span>
+            <span class="tag">ダ</span>
+          </div>
+        </div>
+        <div class="table-like">
+          <div style="width:48px;font-weight:600;">芝</div>
+          <input type="number" min="5" max="12" step="0.1" class="small-input" placeholder="クッション" data-course="${name}" data-surface="芝" data-type="cush" style="max-width:78px;">
+          <input type="number" min="0" max="40" step="0.1" class="small-input" placeholder="含水" data-course="${name}" data-surface="芝" data-type="water" style="max-width:78px;">
+          <button class="small-btn" data-action="applyOne" data-course="${name}" data-surface="芝">反映</button>
+        </div>
+        <div class="table-like">
+          <div style="width:48px;font-weight:600;">ダ</div>
+          <input type="number" min="5" max="12" step="0.1" class="small-input" placeholder="クッション" data-course="${name}" data-surface="ダート" data-type="cush" style="max-width:78px;">
+          <input type="number" min="0" max="40" step="0.1" class="small-input" placeholder="含水" data-course="${name}" data-surface="ダート" data-type="water" style="max-width:78px;">
+          <button class="small-btn" data-action="applyOne" data-course="${name}" data-surface="ダート">反映</button>
+        </div>
+        <p class="sub-text" style="margin-top:5px;">※ここに入れた数値はタブ1の同じ場・馬場で表示されます。</p>
+      `;
+      inputListEl.appendChild(wrap);
+    });
 
-// タブ切り替え
-const tabs=document.querySelectorAll('.tab-btn');
-tabs.forEach(btn=>btn.addEventListener('click',()=>{
- tabs.forEach(b=>b.classList.remove('active'));
- btn.classList.add('active');
- document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
- document.getElementById(btn.dataset.tab).classList.add('active');
-}));
-</script>
+    // 入力→todayTrack へ
+    inputListEl.addEventListener("click", e => {
+      const btn = e.target.closest("[data-action='applyOne']");
+      if (!btn) return;
+      const course = btn.dataset.course;
+      const surface = btn.dataset.surface;
+      const key = course + "-" + surface;
+      const cushInput = inputListEl.querySelector(`input[data-course='${course}'][data-surface='${surface}'][data-type='cush']`);
+      const waterInput = inputListEl.querySelector(`input[data-course='${course}'][data-surface='${surface}'][data-type='water']`);
+      const c = cushInput.value ? parseFloat(cushInput.value) : null;
+      const w = waterInput.value ? parseFloat(waterInput.value) : null;
+      todayTrack[key] = {cush: c, water: w};
+      // 今タブ1で見てるのが同じなら更新
+      syncView();
+    });
+
+    // タブ1表示
+    const selCourse = document.getElementById("selCourse");
+    const selSurface = document.getElementById("selSurface");
+    const selDistance = document.getElementById("selDistance");
+    selCourse.addEventListener("change", syncView);
+    selSurface.addEventListener("change", syncView);
+    selDistance.addEventListener("change", syncView);
+
+    function syncView() {
+      const c = selCourse.value;
+      const s = selSurface.value;
+      const d = parseInt(selDistance.value,10);
+      const keyFull = `${c}-${s}-${d}`;
+      const base = baseCourses[keyFull] || {
+        course: c,
+        surface: s,
+        dist: d,
+        turn: (c==="中山"||c==="阪神"||c==="小倉") ? "右回り" : "左回り",
+        straight: (c==="東京"?526: (c==="中山"?310:400)),
+        slope: (c==="東京"||c==="中山")? "ゴール前坂あり":"ほぼ平坦",
+        slopeH: (c==="東京"?1.5:(c==="中山"?2.4:1.0)),
+        elevation: 2.0,
+        start: "標準発走",
+        shape: (c==="中山"||c==="小倉") ? "小回り" : "大回り",
+        basePass: 59.5,
+        base3f: 34.8
+      };
+
+      // 今日の入力があれば反映
+      const todayKey = `${c}-${s}`;
+      const today = todayTrack[todayKey] || {};
+      const cushVal = today.cush ?? 0;
+      const waterVal = today.water ?? 0;
+
+      const view = document.getElementById("viewCard");
+      view.innerHTML = `
+        <div class="course-header">
+          <span class="surface-pill">${s === "芝" ? "芝（GREEN）" : "ダート（BROWN）"}</span>
+          <div class="course-title">${c}・${d}m</div>
+        </div>
+        <div class="course-text">
+          ${base.turn}・直線${base.straight}m・${base.slope}（坂高${base.slopeH}m／高低差${base.elevation}m）・${base.start}
+        </div>
+        <div class="inline-meta">
+          基本情報：${base.turn}／直線${base.straight}m／高低差${base.elevation}m／形状${base.shape}
+        </div>
+        <div class="inline-meta" style="margin-bottom:10px;">
+          基準通過：${base.basePass.toFixed(1)}秒　基準上がり3F：${base.base3f.toFixed(1)}秒
+        </div>
+        <div class="info-grid">
+          <div class="info-box">
+            <div class="info-label">回り</div>
+            <div class="info-value">${base.turn}</div>
+          </div>
+          <div class="info-box">
+            <div class="info-label">直線</div>
+            <div class="info-value">${base.straight}m</div>
+          </div>
+          <div class="info-box">
+            <div class="info-label">高低差</div>
+            <div class="info-value">${base.elevation}m</div>
+          </div>
+          <div class="info-box">
+            <div class="info-label">坂高</div>
+            <div class="info-value">${base.slopeH}m</div>
+          </div>
+        </div>
+
+        <div class="bar-wrapper" style="margin-top:10px;">
+          <div class="bar-label">
+            <span>本日のクッション値${today.cush != null ? `（${today.cush}）` : ""}</span>
+            <span style="font-size:.6rem;">※未入力なら0％表示</span>
+          </div>
+          <div class="bar-track">
+            <div class="bar-fill" style="width:${Math.min((cushVal/12)*100,100)}%;"></div>
+          </div>
+        </div>
+        <div class="bar-wrapper">
+          <div class="bar-label">
+            <span>本日の含水率${today.water != null ? `（${today.water}%）` : ""}</span>
+            <span style="font-size:.6rem;">良～重の目安</span>
+          </div>
+          <div class="bar-track">
+            <div class="bar-fill" style="width:${Math.min((today.water ?? 0)/40*100,100)}%;background:#38bdf8;"></div>
+          </div>
+        </div>
+      `;
+    }
+
+    // 初期表示
+    syncView();
+
+    // コピー
+    document.getElementById("btnCopy").addEventListener("click", () => {
+      const c = selCourse.value;
+      const s = selSurface.value;
+      const d = selDistance.value;
+      const today = todayTrack[`${c}-${s}`] || {};
+      const txt = `${c} ${s} ${d}m\nクッション:${today.cush ?? "-"} / 含水:${today.water ?? "-"}%\n`;
+      navigator.clipboard.writeText(txt).catch(()=>{});
+      alert("コピーしました");
+    });
+  </script>
 </body>
 </html>
