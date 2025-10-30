@@ -196,6 +196,23 @@
             '<button class="small-btn" data-apply="'+t+'">反映</button>'+
           '</div>';
         inputList.appendChild(wrap);
+        // 保存ボタンを押したときに入力値を保存＆反映
+document.getElementById("saveBtn").addEventListener("click", function() {
+  // 入力値取得
+  const place = document.getElementById("place").value;
+  const surface = document.getElementById("surface").value;
+  const distance = document.getElementById("distance").value;
+  const passTime = document.getElementById("passTime").value;
+  const finishTime = document.getElementById("finishTime").value;
+  const cushion = document.getElementById("cushion").value;
+  const moisture = document.getElementById("moisture").value;
+
+  // 保存
+  const raceData = { place, surface, distance, passTime, finishTime, cushion, moisture };
+  localStorage.setItem("raceData", JSON.stringify(raceData));
+
+  renderRaceData(); // タブ1を更新
+});
       });
 
       // 入力した瞬間に保存＋表示更新
