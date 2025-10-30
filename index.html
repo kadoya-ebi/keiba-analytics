@@ -1,149 +1,596 @@
 <!doctype html>
 <html lang="ja">
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>競馬アナリティクス</title>
-<style>
-  :root{--b:#e5e7eb;--t:#111}
-  body{margin:0;font-family:system-ui,"Noto Sans JP",sans-serif;background:#fafafa;color:var(--t)}
-  .wrap{max-width:1080px;margin:0 auto;padding:10px}
-  h1{font-size:20px;margin:0 0 8px}
-  .tabs{display:flex;gap:6px;border-bottom:1px solid var(--b);margin-bottom:10px}
-  .tab{padding:10px 14px;border:1px solid var(--b);border-bottom:none;border-radius:12px 12px 0 0;background:#fff;cursor:pointer}
-  .tab.active{background:#111;color:#fff;border-color:#111}
-  iframe{width:100%;height:calc(100vh - 110px);border:1px solid var(--b);border-radius:12px;background:#fff}
-  .note{font-size:12px;color:#666;margin:6px 2px}
-</style>
-<div class="wrap">
-  <h1>競馬アナリティクス（タブ版）</h1>
-  <div class="tabs">
-    <div class="tab active" data-src="index_cascade_plus.html">① 早見表</div>
-    <div class="tab" data-src="index_track_condition.html">② 馬場コンディション</div>
-  </div>
-  <div class="note">※ 各タブは同リポジトリ内HTMLを読み込みます（index_cascade_plus.html / index_track_condition.html）</div>
-  <iframe id="viewer" src="index_cascade_plus.html" loading="lazy" title="viewer"></iframe>
-</div>
-<script>
-// ==== コースごとの基準タイム（芝・ダート） ====
-// ※あとで値を調整可能です。現状はテスト用の概算。
+<head>
+  <meta charset="utf-8" />
+  <title>JRAコース早見（本日入力版）</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <style>
+    :root {
+      --bg:#f4f5f6;
+      --card:#ffffff;
+      --border:#d9dfe5;
+      --accent:#0b7f69;
+      --accent-soft:rgba(11,127,105,.07);
+      --text:#222;
+      --muted:#6b7280;
+      --danger:#d97757;
+      --radius:16px;
+    }
+    *{box-sizing:border-box;}
+    body{
+      margin:0;
+      background:var(--bg);
+      font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif;
+      color:var(--text);
+    }
+    header{
+      background:var(--accent);
+      color:#fff;
+      padding:18px 16px 14px;
+      font-weight:700;
+      font-size:1.05rem;
+    }
+    header small{
+      display:block;
+      font-weight:400;
+      font-size:.72rem;
+      opacity:.85;
+      margin-top:4px;
+    }
+    main{padding:14px 12px 80px;max-width:1080px;margin:0 auto;}
+    .tabs{
+      display:flex;
+      gap:8px;
+      margin-bottom:14px;
+    }
+    .tab-btn{
+      flex:1;
+      background:#fff;
+      border:1px solid transparent;
+      border-radius:999px;
+      padding:9px 12px 10px;
+      text-align:center;
+      font-size:.82rem;
+      font-weight:500;
+      color:var(--muted);
+      box-shadow:0 1px 0 rgba(0,0,0,.04);
+    }
+    .tab-btn.active{
+      background:var(--accent);
+      color:#fff;
+      border-color:transparent;
+      box-shadow:0 4px 14px rgba(11,127,105,.35);
+    }
+    .card{
+      background:var(--card);
+      border:1px solid #e4e6ea;
+      border-radius:var(--radius);
+      padding:16px 14px 16px;
+      margin-bottom:14px;
+      box-shadow:0 4px 20px rgba(26,31,38,.03);
+    }
+    label{
+      display:block;
+      font-size:.74rem;
+      margin-bottom:5px;
+      color:#3e4b5a;
+      font-weight:500;
+    }
+    select, input[type="number"]{
+      width:100%;
+      border:1px solid #d6dbe0;
+      border-radius:14px;
+      padding:9px 11px 9px;
+      font-size:.9rem;
+      background:#fff;
+    }
+    .row{display:flex;gap:10px;}
+    .row > div{flex:1;}
+    .section-title{
+      font-weight:700;
+      margin-bottom:9px;
+      display:flex;
+      gap:6px;
+      align-items:center;
+    }
+    .badge-surface{
+      background:rgba(11,127,105,.1);
+      color:var(--accent);
+      border-radius:999px;
+      padding:4px 10px 5px;
+      font-size:.72rem;
+      font-weight:600;
+      display:inline-block;
+    }
+    .course-card{
+      background:#e6f3f0;
+      border:1px solid rgba(11,127,105,.16);
+      border-radius:16px;
+      padding:14px 12px 12px;
+      margin-top:8px;
+    }
+    .course-title{
+      display:flex;
+      gap:8px;
+      align-items:center;
+      font-weight:700;
+      margin-bottom:6px;
+      font-size:1rem;
+    }
+    .fact-grid{
+      display:grid;
+      grid-template-columns:repeat(2,minmax(0,1fr));
+      gap:8px;
+      margin-top:12px;
+    }
+    .fact{
+      background:#fff;
+      border-radius:12px;
+      padding:7px 9px 6px;
+      border:1px solid rgba(255,255,255,.35);
+    }
+    .fact label{
+      margin-bottom:1px;
+      font-size:.68rem;
+      color:#6b7280;
+      font-weight:500;
+    }
+    .fact .value{
+      font-weight:700;
+      font-size:.95rem;
+    }
+    .metric-row{
+      display:grid;
+      grid-template-columns:repeat(3,minmax(0,1fr));
+      gap:8px;
+      margin-top:10px;
+    }
+    .metric{
+      background:#fff;
+      border-radius:12px;
+      padding:7px 9px 6px;
+      border:1px solid rgba(255,255,255,.35);
+    }
+    .metric small{display:block;font-size:.65rem;color:#6b7280;margin-bottom:1px;}
+    .metric strong{font-size:1.02rem;}
+    .bar-wrap{margin-top:10px;}
+    .bar-label{
+      display:flex;
+      justify-content:space-between;
+      font-size:.7rem;
+      color:#6b7280;
+      margin-bottom:3px;
+    }
+    .bar-outer{
+      background:#edf1f3;
+      border-radius:999px;
+      height:12px;
+      position:relative;
+      overflow:hidden;
+    }
+    .bar-inner{
+      height:100%;
+      background:linear-gradient(90deg,#eab308 0%,#22c55e 60%,#0f766e 100%);
+      width:0;
+      transition:width .35s ease;
+    }
+    .bar-value{
+      position:absolute;
+      top:-23px;
+      right:0;
+      font-size:.64rem;
+      background:#fff;
+      border:1px solid #dfe2e5;
+      border-radius:999px;
+      padding:1px 6px 2px;
+    }
+    .copy-btn{
+      width:100%;
+      border:none;
+      background:#fff;
+      border:1px dashed rgba(11,127,105,.45);
+      border-radius:14px;
+      padding:9px 12px 8px;
+      font-weight:600;
+      color:var(--accent);
+      cursor:pointer;
+      font-size:.85rem;
+    }
+    .small-note{font-size:.67rem;color:#7a818a;margin-top:5px;}
+    /* タブ2 */
+    .input-inline{display:flex;gap:6px;}
+    .input-inline input{flex:1;}
+    @media (min-width:680px){
+      .fact-grid{grid-template-columns:repeat(4,minmax(0,1fr));}
+      .metric-row{grid-template-columns:repeat(4,minmax(0,1fr));}
+    }
+  </style>
+</head>
+<body>
+  <header>
+    JRAコース早見
+    <small>本日入力版／タブ1=見る・タブ2=今日の値を入れる</small>
+  </header>
+  <main>
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="view">1. コースを見る</button>
+      <button class="tab-btn" data-tab="input">2. 今日の馬場を入れる</button>
+    </div>
 
-const courseStandard = {
-  // ===== 東京 =====
-  "東京_芝_1400": { pass: 46.8, last3f: 34.3 },
-  "東京_芝_1600": { pass: 57.8, last3f: 33.8 },
-  "東京_芝_1800": { pass: 59.5, last3f: 34.0 },
-  "東京_芝_2000": { pass: 58.2, last3f: 34.1 },
-  "東京_芝_2400": { pass: 60.5, last3f: 34.4 },
-  "東京_ダ_1300": { pass: 60.5, last3f: 37.2 },
-  "東京_ダ_1400": { pass: 59.5, last3f: 37.0 },
-  "東京_ダ_1600": { pass: 61.0, last3f: 36.8 },
-  "東京_ダ_2100": { pass: 64.5, last3f: 38.5 },
+    <!-- タブ1：見る -->
+    <div id="tab-view">
+      <div class="card">
+        <div class="row" style="margin-bottom:10px;">
+          <div>
+            <label for="racecourse">競馬場</label>
+            <select id="racecourse">
+              <option>東京</option>
+              <option>中山</option>
+              <option>京都</option>
+              <option>阪神</option>
+              <option>小倉</option>
+              <option>札幌</option>
+              <option>函館</option>
+              <option>新潟</option>
+              <option>福島</option>
+              <option>中京</option>
+            </select>
+          </div>
+          <div>
+            <label for="surface">馬場</label>
+            <select id="surface">
+              <option value="芝">芝</option>
+              <option value="ダート">ダート</option>
+            </select>
+          </div>
+          <div>
+            <label for="distance">距離</label>
+            <select id="distance"></select>
+          </div>
+        </div>
+        <button class="copy-btn" id="copyTextBtn">テキストをコピー</button>
+        <p class="small-note">※ページを閉じるとリセット。今日だけのメモ用。</p>
+      </div>
 
-  // ===== 中山 =====
-  "中山_芝_1200": { pass: 34.2, last3f: 34.6 },
-  "中山_芝_1600": { pass: 59.8, last3f: 35.2 },
-  "中山_芝_1800": { pass: 60.5, last3f: 35.0 },
-  "中山_芝_2000": { pass: 60.0, last3f: 34.5 },
-  "中山_芝_2500": { pass: 61.5, last3f: 35.2 },
-  "中山_ダ_1200": { pass: 60.5, last3f: 37.2 },
-  "中山_ダ_1800": { pass: 63.5, last3f: 38.0 },
+      <div class="card" id="courseCard">
+        <!-- 選択結果がここに入る -->
+      </div>
+    </div>
 
-  // ===== 京都 =====
-  "京都_芝_1400": { pass: 46.9, last3f: 34.5 },
-  "京都_芝_1600": { pass: 57.9, last3f: 34.0 },
-  "京都_芝_1800": { pass: 59.0, last3f: 34.3 },
-  "京都_芝_2000": { pass: 59.2, last3f: 34.5 },
-  "京都_芝_2200": { pass: 60.2, last3f: 34.7 },
-  "京都_芝_2400": { pass: 61.2, last3f: 34.9 },
-  "京都_ダ_1200": { pass: 60.2, last3f: 37.1 },
-  "京都_ダ_1400": { pass: 60.0, last3f: 37.0 },
-  "京都_ダ_1800": { pass: 63.0, last3f: 38.0 },
+    <!-- タブ2：入力 -->
+    <div id="tab-input" style="display:none;">
+      <div class="card">
+        <div class="section-title">本日の馬場傾向を入力</div>
+        <div class="row" style="margin-bottom:8px;">
+          <div>
+            <label>芝クッション値</label>
+            <input type="number" id="inputTurfCushion" min="5" max="13" step="0.1" placeholder="例: 9.6" />
+          </div>
+          <div>
+            <label>芝含水率(%)</label>
+            <input type="number" id="inputTurfMoist" min="0" max="30" step="0.1" placeholder="例: 14" />
+          </div>
+        </div>
+        <div class="row" style="margin-bottom:12px;">
+          <div>
+            <label>ダ含水率(%)</label>
+            <input type="number" id="inputDirtMoist" min="0" max="40" step="0.1" placeholder="例: 3.5" />
+          </div>
+          <div>
+            <label>反映先の競馬場</label>
+            <select id="inputTargetCourse">
+              <option value="同じ">今タブ1で選んでる競馬場に</option>
+              <option value="全場">すべての競馬場に</option>
+            </select>
+          </div>
+        </div>
+        <button class="copy-btn" id="applyTodayBtn">タブ1に反映する</button>
+        <p class="small-note">※リロードすると消えます。今日の値だけ入れてね。</p>
+      </div>
+    </div>
+  </main>
 
-  // ===== 阪神 =====
-  "阪神_芝_1200": { pass: 34.5, last3f: 34.4 },
-  "阪神_芝_1400": { pass: 47.0, last3f: 34.6 },
-  "阪神_芝_1600": { pass: 58.5, last3f: 34.5 },
-  "阪神_芝_1800": { pass: 59.8, last3f: 34.6 },
-  "阪神_芝_2000": { pass: 60.0, last3f: 34.8 },
-  "阪神_芝_2200": { pass: 61.0, last3f: 35.0 },
-  "阪神_芝_2400": { pass: 62.0, last3f: 35.1 },
-  "阪神_ダ_1200": { pass: 60.8, last3f: 37.2 },
-  "阪神_ダ_1400": { pass: 60.5, last3f: 37.2 },
-  "阪神_ダ_1800": { pass: 63.8, last3f: 38.2 },
-  "阪神_ダ_2000": { pass: 65.0, last3f: 38.5 },
+  <script>
+    // 1) コース基本データ（ここは後で増やせるようにしてある）
+    // key: "競馬場|馬場|距離"
+    const COURSE_DB = {
+      // 東京
+      "東京|芝|2000": {
+        turn: "左回り",
+        straight: 526,
+        slopePos: "ゴール前坂あり",
+        slopeH: 1.5,
+        diff: 2.0,
+        shape: "大回り",
+        start: "2コーナー発走",
+        basePass: 58.2,  // デフォルト基準通過(例)
+        baseLast3: 34.1  // デフォルト基準上がり
+      },
+      "東京|芝|1600": {
+        turn: "左回り",
+        straight: 525,
+        slopePos: "ゴール前坂あり",
+        slopeH: 1.5,
+        diff: 2.0,
+        shape: "ワンターン",
+        start: "正面スタンド前発走",
+        basePass: 57.9,
+        baseLast3: 33.9
+      },
+      "東京|ダート|1600": {
+        turn: "左回り",
+        straight: 501,
+        slopePos: "ゴール前坂あり",
+        slopeH: 1.5,
+        diff: 2.0,
+        shape: "芝スタート",
+        start: "芝スタート→ダート",
+        basePass: 60.5,
+        baseLast3: 36.8
+      },
+      // 中山
+      "中山|芝|1200": {
+        turn: "右回り",
+        straight: 310,
+        slopePos: "ゴール前坂あり",
+        slopeH: 2.2,
+        diff: 5.3,
+        shape: "小回り",
+        start: "4コーナー奥発走",
+        basePass: 33.5,
+        baseLast3: 35.0
+      },
+      "中山|芝|2000": {
+        turn: "右回り",
+        straight: 310,
+        slopePos: "ゴール前坂あり",
+        slopeH: 2.2,
+        diff: 5.3,
+        shape: "内回り",
+        start: "スタンド前発走",
+        basePass: 59.8,
+        baseLast3: 35.0
+      },
+      "中山|ダート|1800": {
+        turn: "右回り",
+        straight: 308,
+        slopePos: "ゴール前坂あり",
+        slopeH: 2.2,
+        diff: 5.3,
+        shape: "ダート標準",
+        start: "ホームストレッチ発走",
+        basePass: 62.5,
+        baseLast3: 38.0
+      },
+      // 京都（新装はざっくり）
+      "京都|芝|1600": {
+        turn: "右回り",
+        straight: 400,
+        slopePos: "平坦寄り",
+        slopeH: 0.5,
+        diff: 3.0,
+        shape: "外回り",
+        start: "向正面奥発走",
+        basePass: 58.5,
+        baseLast3: 34.3
+      },
+      "京都|芝|3200": {
+        turn: "右回り",
+        straight: 400,
+        slopePos: "平坦寄り",
+        slopeH: 0.5,
+        diff: 3.0,
+        shape: "長距離",
+        start: "スタンド前発走",
+        basePass: 63.0,
+        baseLast3: 35.8
+      },
+      // とりあえず他場はざっくりサンプル
+      "阪神|芝|2000": {
+        turn:"右回り", straight:356, slopePos:"ゴール前坂あり", slopeH:1.8, diff:3.5, shape:"外回り", start:"正面スタンド前", basePass:59.5, baseLast3:34.8
+      },
+      "小倉|芝|1800": {
+        turn:"右回り", straight:293, slopePos:"ほぼ平坦", slopeH:0.5, diff:2.0, shape:"小回り", start:"スタンド前", basePass:60.3, baseLast3:35.4
+      }
+    };
 
-  // ===== 中京 =====
-  "中京_芝_1200": { pass: 34.0, last3f: 34.2 },
-  "中京_芝_1400": { pass: 47.1, last3f: 34.4 },
-  "中京_芝_1600": { pass: 58.0, last3f: 34.1 },
-  "中京_芝_2000": { pass: 59.8, last3f: 34.5 },
-  "中京_芝_2200": { pass: 61.1, last3f: 34.8 },
-  "中京_ダ_1200": { pass: 60.3, last3f: 37.2 },
-  "中京_ダ_1400": { pass: 60.2, last3f: 37.3 },
-  "中京_ダ_1800": { pass: 63.8, last3f: 38.3 },
+    // 2) 競馬場ごとの「ありそうな距離」候補
+    const DISTANCE_CANDIDATES = {
+      "東京":   ["1000","1400","1600","1800","2000","2400","2500","3400"],
+      "中山":   ["1200","1600","1800","2000","2500"],
+      "京都":   ["1200","1400","1600","1800","2000","2400","3000","3200"],
+      "阪神":   ["1200","1400","1600","1800","2000","2400"],
+      "小倉":   ["1200","1700","1800","2000"],
+      "札幌":   ["1200","1500","1800","2000"],
+      "函館":   ["1200","1800","2000"],
+      "新潟":   ["1000","1400","1600","1800","2000","2200"],
+      "福島":   ["1200","1700","1800","2000"],
+      "中京":   ["1200","1400","1600","2000","2200"]
+    };
 
-  // ===== 新潟 =====
-  "新潟_芝_1000": { pass: 32.4, last3f: 33.9 },
-  "新潟_芝_1200": { pass: 34.8, last3f: 34.2 },
-  "新潟_芝_1400": { pass: 47.2, last3f: 34.5 },
-  "新潟_芝_1600": { pass: 58.5, last3f: 34.4 },
-  "新潟_芝_1800": { pass: 59.8, last3f: 34.6 },
-  "新潟_芝_2000": { pass: 60.5, last3f: 34.8 },
-  "新潟_ダ_1200": { pass: 60.8, last3f: 37.3 },
-  "新潟_ダ_1800": { pass: 64.2, last3f: 38.4 },
+    // 3) 「今日の入力」保存領域（ページ閉じたら消える）
+    const todayState = {
+      turfCushion:null,
+      turfMoist:null,
+      dirtMoist:null,
+      target:"同じ" // or "全場"
+    };
 
-  // ===== 札幌 =====
-  "札幌_芝_1200": { pass: 34.5, last3f: 34.6 },
-  "札幌_芝_1500": { pass: 46.5, last3f: 35.0 },
-  "札幌_芝_1800": { pass: 59.8, last3f: 35.4 },
-  "札幌_芝_2000": { pass: 60.5, last3f: 35.5 },
-  "札幌_ダ_1000": { pass: 59.2, last3f: 37.1 },
-  "札幌_ダ_1700": { pass: 63.5, last3f: 38.5 },
+    const racecourseSel = document.getElementById('racecourse');
+    const surfaceSel    = document.getElementById('surface');
+    const distanceSel   = document.getElementById('distance');
+    const courseCardEl  = document.getElementById('courseCard');
 
-  // ===== 函館 =====
-  "函館_芝_1200": { pass: 34.0, last3f: 34.5 },
-  "函館_芝_1800": { pass: 59.5, last3f: 35.2 },
-  "函館_芝_2000": { pass: 60.2, last3f: 35.4 },
-  "函館_ダ_1000": { pass: 59.0, last3f: 37.0 },
-  "函館_ダ_1700": { pass: 63.0, last3f: 38.3 },
+    // 初期距離セット
+    function fillDistance(){
+      const rc = racecourseSel.value;
+      const list = DISTANCE_CANDIDATES[rc] || ["1200","1600","2000"];
+      distanceSel.innerHTML = "";
+      list.forEach(d=>{
+        const op = document.createElement('option');
+        op.value = d;
+        op.textContent = d;
+        distanceSel.appendChild(op);
+      });
+    }
+    fillDistance();
 
-  // ===== 福島 =====
-  "福島_芝_1200": { pass: 34.4, last3f: 34.6 },
-  "福島_芝_1800": { pass: 59.9, last3f: 35.2 },
-  "福島_芝_2000": { pass: 60.4, last3f: 35.3 },
-  "福島_ダ_1150": { pass: 60.2, last3f: 37.2 },
-  "福島_ダ_1700": { pass: 63.4, last3f: 38.4 },
+    // コース描画
+    function renderCourse(){
+      const rc = racecourseSel.value;
+      const sf = surfaceSel.value;
+      const dist = distanceSel.value;
+      const key = `${rc}|${sf}|${dist}`;
+      const data = COURSE_DB[key];
 
-  // ===== 小倉 =====
-  "小倉_芝_1200": { pass: 34.0, last3f: 34.2 },
-  "小倉_芝_1700": { pass: 63.2, last3f: 38.3 },
-  "小倉_芝_1800": { pass: 59.5, last3f: 34.6 },
-  "小倉_芝_2000": { pass: 60.5, last3f: 34.8 },
-  "小倉_ダ_1000": { pass: 59.5, last3f: 37.1 },
-  "小倉_ダ_1700": { pass: 63.6, last3f: 38.4 }
-};
+      // 今日の値（タブ2で入れてあれば拾う）
+      const todayTurfCushion = todayState.turfCushion;
+      const todayTurfMoist   = todayState.turfMoist;
+      const todayDirtMoist   = todayState.dirtMoist;
 
-// ==== 表示関数 ====
-function showStandard(course, surface, dist) {
-  const key = `${course}_${surface}_${dist}`;
-  const box = document.getElementById("standardBox");
-  const data = courseStandard[key];
+      // 基準値がなければ空カード
+      if(!data){
+        courseCardEl.innerHTML = `
+          <div class="course-card" style="background:#fef9c3;border-color:#fde68a;">
+            <div class="course-title">
+              <span class="badge-surface">${sf}</span>
+              <span>${rc}・${dist}m</span>
+            </div>
+            <p style="font-size:.78rem;color:#8b5e00;margin-bottom:8px;">この距離のコース情報はまだ入ってません。</p>
+            <p style="font-size:.7rem;color:#a16207;">タブ2で「本日の馬場」を入れておけば、ここにもバーだけは出ます。</p>
+            ${renderTodayBars(sf, todayTurfCushion, todayTurfMoist, todayDirtMoist)}
+          </div>
+        `;
+        return;
+      }
 
-  if (!box) return;
-  if (!data) {
-    box.textContent = "";
-    return;
-  }
+      // 基準通過・上がり（今はDB内の数字をそのまま出す）
+      const pass = data.basePass ?? "-";
+      const last3 = data.baseLast3 ?? "-";
 
-  box.innerHTML = `
-    基準通過：<strong>${data.pass}</strong>　
-    基準上がり3F：<strong>${data.last3f}</strong>
-  `;
-}
-</script>const tabs=[...document.querySelectorAll('.tab')], v=document.getElementById('viewer');
-tabs.forEach(t=>t.addEventListener('click',()=>{
-  tabs.forEach(x=>x.classList.remove('active'));
-  t.classList.add('active');
-  v.src=t.dataset.src;
-}));
-</script>
+      courseCardEl.innerHTML = `
+        <div class="course-card">
+          <div class="course-title">
+            <span class="badge-surface">${sf}</span>
+            <span>${rc}・${dist}m</span>
+          </div>
+          <p style="font-size:.78rem;margin-bottom:8px;">
+            ${data.turn}・直線${data.straight}m・${data.slopePos}（坂高${data.slopeH}m／高低差${data.diff}m）・${data.start}
+          </p>
+          <p style="font-size:.7rem;color:#6b7280;margin-bottom:6px;">
+            基本情報：${data.turn}／直線${data.straight}m／高低差${data.diff}m／${data.slopePos}／形状${data.shape}
+          </p>
+
+          <div class="metric-row">
+            <div class="metric">
+              <small>基準通過タイム</small>
+              <strong>${pass !== "-" ? pass.toFixed(1) + " 秒" : "-"}</strong>
+            </div>
+            <div class="metric">
+              <small>基準上がり 3F</small>
+              <strong>${last3 !== "-" ? last3.toFixed(1) + " 秒" : "-"}</strong>
+            </div>
+            <div class="metric">
+              <small>直線</small>
+              <strong>${data.straight} m</strong>
+            </div>
+            <div class="metric">
+              <small>坂の位置</small>
+              <strong>${data.slopePos}</strong>
+            </div>
+          </div>
+
+          ${renderTodayBars(sf, todayTurfCushion, todayTurfMoist, todayDirtMoist)}
+        </div>
+      `;
+    }
+
+    // 今日の馬場バー表示
+    function renderTodayBars(surface, turfCushion, turfMoist, dirtMoist){
+      // surfaceが芝なら芝優先、ダートならダート優先で出す
+      let html = `<div class="bar-wrap" style="margin-top:14px;">
+        <div class="bar-label"><span>本日の馬場傾向</span><span style="font-size:.63rem;color:#94a3b8;">※タブ2で入力</span></div>
+      `;
+      if(surface === "芝"){
+        // クッション値
+        html += renderBarLine("クッション値", turfCushion, 7, 11.5);
+        // 含水率
+        html += renderBarLine("含水率(芝)", turfMoist, 10, 25);
+      }else{
+        html += renderBarLine("含水率(ダート)", dirtMoist, 0, 20);
+      }
+      html += `</div>`;
+      return html;
+    }
+    function renderBarLine(label, value, min, max){
+      if(value == null || value === ""){
+        return `<div class="bar-label" style="margin-top:6px;"><span>${label}</span><span style="color:#cbd5e1;font-size:.65rem;">未入力</span></div>
+        <div class="bar-outer"><div class="bar-inner" style="width:0"></div></div>`;
+      }
+      const pct = Math.max(0, Math.min(100, ((value - min)/(max - min))*100));
+      return `
+        <div class="bar-label" style="margin-top:6px;">
+          <span>${label}</span><span>${value}</span>
+        </div>
+        <div class="bar-outer">
+          <div class="bar-inner" style="width:${pct}%;"></div>
+          <div class="bar-value">${value}</div>
+        </div>
+      `;
+    }
+
+    // イベント
+    racecourseSel.addEventListener('change', ()=>{
+      fillDistance();
+      renderCourse();
+    });
+    surfaceSel.addEventListener('change', renderCourse);
+    distanceSel.addEventListener('change', renderCourse);
+
+    // コピーボタン
+    document.getElementById('copyTextBtn').addEventListener('click', ()=>{
+      const rc = racecourseSel.value;
+      const sf = surfaceSel.value;
+      const dist = distanceSel.value;
+      const key = `${rc}|${sf}|${dist}`;
+      const data = COURSE_DB[key];
+      let txt = `${rc} ${sf} ${dist}m`;
+      if(data){
+        txt += `／${data.turn}／直線${data.straight}m／${data.slopePos}（${data.slopeH}m）／高低差${data.diff}m`;
+      }
+      navigator.clipboard?.writeText(txt).catch(()=>{});
+      alert("コピーしました：\n" + txt);
+    });
+
+    // タブ切り替え
+    const tabBtns = document.querySelectorAll('.tab-btn');
+    tabBtns.forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        tabBtns.forEach(b=>b.classList.remove('active'));
+        btn.classList.add('active');
+        const tab = btn.dataset.tab;
+        document.getElementById('tab-view').style.display = tab === "view" ? "block" : "none";
+        document.getElementById('tab-input').style.display = tab === "input" ? "block" : "none";
+      });
+    });
+
+    // タブ2 → 反映
+    document.getElementById('applyTodayBtn').addEventListener('click', ()=>{
+      const tC = document.getElementById('inputTurfCushion').value;
+      const tM = document.getElementById('inputTurfMoist').value;
+      const dM = document.getElementById('inputDirtMoist').value;
+      const tgt = document.getElementById('inputTargetCourse').value;
+      todayState.turfCushion = tC !== "" ? Number(tC) : null;
+      todayState.turfMoist   = tM !== "" ? Number(tM) : null;
+      todayState.dirtMoist   = dM !== "" ? Number(dM) : null;
+      todayState.target      = tgt;
+      // 今開いてるタブ1を再描画
+      renderCourse();
+      alert("タブ1に本日の値を反映しました");
+    });
+
+    // 初回描画
+    renderCourse();
+  </script>
+</body>
+</html>
