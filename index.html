@@ -22,22 +22,25 @@
   display: flex;
   gap: 8px;
   background: #d7ebe9; /* やや緑寄りの淡いトーン */
-  padding: 10px 14px 6px;
-   }
-    .tab-btn {
-      flex: 1;
-      border: none;
-      background: rgba(255,255,255,.08);
-      border-radius: 999px;
-      padding: 8px 0 7px;
-      color: #fff;
-      font-weight: 600;
-      font-size: .8rem;
-    }
-    .tab-btn.active {
-      background: #fff;
-      color: #0f766e;
-      box-shadow: 0 6px 18px rgba(0,0,0,.12);
+  padding: 10px 14px .tab-btn {
+  flex: 1;
+  border: none;
+  background: rgba(255,255,255,.25); /* ← 少し濃くして視認性UP */
+  border-radius: 999px;
+  padding: 8px 0 7px;
+  color: #e8f3f2; /* ← 少し明るめの緑がかった白 */
+  font-weight: 600;
+  font-size: .8rem;
+  transition: all .2s ease;
+}
+.tab-btn:hover {
+  background: rgba(255,255,255,.35);
+}
+.tab-btn.active {
+  background: #fff;
+  color: #0f766e;
+  box-shadow: 0 4px 12px rgba(0,0,0,.15);
+}
     }
     main {
       padding: 14px 14px 90px;
