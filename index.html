@@ -178,79 +178,61 @@
 
     // 6) タブ2の入力欄を作る（ここが今回のポイント）
     function renderInputList(){
-      inputList.innerHTML = "";
-      trackNames.forEach(function(t){
-        var wrap = document.createElement('div');
-        wrap.className = "track-input";
-        wrap.innerHTML =
-          '<div style="font-weight:700;margin-bottom:4px;">'+t+'</div>'+
-          '<div class="input-line">'+
-            '<span style="font-size:.65rem;">芝 C</span>'+
-            '<input type="number" step="0.1" class="small-inp" data-track="'+t+'" data-field="turf.cushion" placeholder="10" />'+
-            '<span style="font-size:.65rem;">芝 水</span>'+
-            '<input type="number" step="0.1" class="small-inp" data-track="'+t+'" data-field="turf.moisture" placeholder="20" />'+
-          '</div>'+
-          '<div class="input-line">'+
-            '<span style="font-size:.65rem;">ダ 水</span>'+
-            '<input type="number" step="0.1" class="small-inp" data-track="'+t+'" data-field="dirt.moisture" placeholder="5" />'+
-            '<button class="small-btn" data-apply="'+t+'">反映</button>'+
-          '</div>';
-        inputList.appendChild(wrap);
-        // 保存ボタンを押したときに入力値を保存＆反映
-document.getElementById("saveBtn").addEventListener("click", function() {
-  // 入力値取得
-  const surface = document.getElementById("surface").value;
-  const distance = document.getElementById("distance").value;
-  const passTime = document.getElementById("passTime").value;
-  const finishTime = document.getElementById("finishTime").value;
-  const cushion = document.getElementById("cushion").value;
-  const moisture = document.getElementById("moisture").value;
+  inputList.innerHTML = "";
+  trackNames.forEach(function(t){
+    var wrap = document.createElement('div');
+    wrap.className = "track-input";
+    wrap.innerHTML =
+      '<div style="font-weight:700;margin-bottom:4px;">'+t+'</div>'+
+      '<div class="input-line">'+
+        '<span style="font-size:.65rem;">芝 C</span>'+
+        '<input type="number" step="0.1" class="small-inp" data-track="'+t+'" data-field="turf.cushion" placeholder="10" />'+
+        '<span style="font-size:.65rem;">芝 水</span>'+   // ←ここだけ直した
+        '<input type="number" step="0.1" class="small-inp" data-track="'+t+'" data-field="turf.moisture" placeholder="20" />'+
+      '</div>'+
+      '<div class="input-line">'+
+        '<span style="font-size:.65rem;">ダ 水</span>'+
+        '<input type="number" step="0.1" class="small-inp" data-track="'+t+'" data-field="dirt.moisture" placeholder="5" />'+
+        '<button class="small-btn" data-apply="'+t+'">反映</button>'+
+      '</div>';
+    inputList.appendChild(wrap);
+  });
 
-  // 保存
-  const raceData = { place, surface, distance, passTime, finishTime, cushion, moisture };
-  localStorage.setItem("raceData", JSON.stringify(raceData));
+  // 入力した瞬間に保存＋表示更新
+  var allInputs = inputList.querySelectorAll('input[data-track]');
+  allInputs.forEach(function(inp){
+    inp.addEventListener('input', function(){
+      var t = inp.dataset.track;
+      var f = inp.dataset.field;
+      var v = inp.value;
+      if (f === "turf.cushion")  todayValues[t].turf.cushion = v;
+      if (f === "turf.moisture") todayValues[t].turf.moisture = v;
+      if (f === "dirt.moisture") todayValues[t].dirt.moisture = v;
+      if (selTrack.value === t) {
+        renderCourse();
+      }
+    });
+  });
 
-  renderRaceData(); // タブ1を更新
-});
+  // ボタンでも一応反映
+  var btns = inputList.querySelectorAll('button[data-apply]');
+  btns.forEach(function(b){
+    b.addEventListener('click', function(){
+      var t = b.dataset.apply;
+      var ins = inputList.querySelectorAll('input[data-track="'+t+'"]');
+      ins.forEach(function(inp){
+        var f = inp.dataset.field;
+        var v = inp.value;
+        if (f === "turf.cushion")  todayValues[t].turf.cushion = v;
+        if (f === "turf.moisture") todayValues[t].turf.moisture = v;
+        if (f === "dirt.moisture") todayValues[t].dirt.moisture = v;
       });
-
-      // 入力した瞬間に保存＋表示更新
-      var allInputs = inputList.querySelectorAll('input[data-track]');
-      allInputs.forEach(function(inp){
-        inp.addEventListener('input', function(){
-          var t = inp.dataset.track;
-          var f = inp.dataset.field;
-          var v = inp.value;
-          if (f === "turf.cushion")  todayValues[t].turf.cushion = v;
-          if (f === "turf.moisture") todayValues[t].turf.moisture = v;
-          if (f === "dirt.moisture") todayValues[t].dirt.moisture = v;
-          // 今タブ1でこの競馬場を見てたら更新
-          if (selTrack.value === t) {
-            renderCourse();
-          }
-        });
-      });
-
-      // ボタンでも一応反映できるようにしておく
-      var btns = inputList.querySelectorAll('button[data-apply]');
-      btns.forEach(function(b){
-        b.addEventListener('click', function(){
-          var t = b.dataset.apply;
-          var ins = inputList.querySelectorAll('input[data-track="'+t+'"]');
-          ins.forEach(function(inp){
-            var f = inp.dataset.field;
-            var v = inp.value;
-            if (f === "turf.cushion")  todayValues[t].turf.cushion = v;
-            if (f === "turf.moisture") todayValues[t].turf.moisture = v;
-            if (f === "dirt.moisture") todayValues[t].dirt.moisture = v;
-          });
-          if (selTrack.value === t) {
-            renderCourse();
-          }
-        });
-      });
-    }
-
+      if (selTrack.value === t) {
+        renderCourse();
+      }
+    });
+  });
+}
     // 7) タブ1の表示
     function renderCourse(){
       var t = selTrack.value;
