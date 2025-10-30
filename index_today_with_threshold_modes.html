@@ -5,25 +5,216 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>本日だけ使う版：目安切り替えつき</title>
 <style>
-  :root{ --bg:#f7f7f9;--card:#fff;--border:#e5e7eb;--text:#111;--muted:#6b7280; --turf:#e6f4e6; --dirt:#f0e0d0; }
-  body{margin:0;background:linear-gradient(#fafafa,#f3f4f6);font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,"Noto Sans JP","Hiragino Kaku Gothic ProN",Meiryo,sans-serif;color:var(--text)}
-  .wrap{max-width:980px;margin:0 auto;padding:16px 16px 80px}
-  h1{font-size:20px;margin:0 0 12px}
-  .card{background:var(--card);border:1px solid var(--border);border-radius:16px;box-shadow:0 4px 12px rgba(0,0,0,.04);padding:16px;margin:12px 0}
-  .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-  select,button,input{padding:10px;border:1px solid var(--border);border-radius:12px;background:#fff;font:inherit}
-  .feat{border-radius:16px;padding:16px;border:1px solid var(--border);background:var(--card)}
-  .feat.turf{background:var(--turf)}
-  .feat.dirt{background:var(--dirt)}
-  .muted{color:var(--muted);font-size:12px}
-  .big{font-size:18px;font-weight:700;margin-bottom:4px}
-  .bar{position:relative;height:16px;border-radius:999px;overflow:hidden;border:1px solid var(--border);background:#f0f0f0}
-  .bar .fill{position:absolute;top:0;left:0;bottom:0;background:linear-gradient(90deg,#a3e635,#facc15,#f97316,#ef4444)}
-  .bar .tick{position:absolute;top:-6px;width:2px;height:28px;background:#999;opacity:.6}
-  .legend{display:flex;justify-content:space-between;font-size:12px;color:#444;margin-top:6px}
-  .mini{font-size:14px;padding:8px 10px;border-radius:10px;border:1px solid var(--border)}
-  .thbox{display:flex;gap:6px;align-items:center}
-  .thbox input{width:80px}
+  :root{
+    --bg:#f3f4f6;
+    --card:#fff;
+    --border:#e5e7eb;
+    --text:#0f172a;
+    --muted:#6b7280;
+    --turf:#e9f7e6;
+    --dirt:#f7ecdd;
+    --accent:#0f766e;
+  }
+
+  /* 全体 */
+  body{
+    margin:0;
+    background:linear-gradient(#f8fafc,#e2e8f0);
+    font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,"Noto Sans JP","Hiragino Kaku Gothic ProN",Meiryo,sans-serif;
+    color:var(--text);
+  }
+  .wrap{
+    max-width:980px;
+    margin:0 auto;
+    padding:12px 14px 80px;
+  }
+
+  /* ヘッダー */
+  .topbar{
+    background:var(--accent);
+    color:#fff;
+    padding:10px 16px 12px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    border-radius:0 0 18px 18px;
+    margin:-12px -14px 14px;
+  }
+  .topbar .logo{
+    font-weight:700;
+    letter-spacing:.04em;
+  }
+  .topbar .today{
+    font-size:12px;
+    opacity:.8;
+  }
+
+  /* カード共通 */
+  .card{
+    background:var(--card);
+    border:1px solid rgba(15,118,110,.03);
+    border-radius:16px;
+    box-shadow:0 4px 14px rgba(15,23,42,.04);
+    padding:14px 14px 14px;
+    margin:10px 0;
+  }
+
+  /* 入力帯 */
+  .selector-bar{
+    background:#f3f4f6;
+    border:1px solid #e2e8f0;
+    border-radius:15px;
+    padding:8px;
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+    align-items:center;
+  }
+  .selector-bar label{
+    font-size:11px;
+    color:#475569;
+    display:flex;
+    flex-direction:column;
+    gap:3px;
+    min-width:110px;
+  }
+  select,button,input{
+    padding:8px 9px;
+    border:1px solid #d4d4d8;
+    border-radius:12px;
+    background:#fff;
+    font:inherit;
+  }
+  button{
+    cursor:pointer;
+    background:#fff;
+    transition:.15s;
+  }
+  button:hover{
+    background:#e2e8f0;
+  }
+  .btn-main{
+    background:#0f766e;
+    color:#fff;
+    border:none;
+  }
+  .muted{
+    color:var(--muted);
+    font-size:12px;
+  }
+
+  /* コース特徴カード */
+  .feat{
+    border-radius:16px;
+    border:1px solid rgba(15,118,110,.04);
+    position:relative;
+  }
+  .feat.turf{ background:var(--turf); }
+  .feat.dirt{ background:var(--dirt); }
+
+  /* 小タグ */
+  .tag{
+    display:inline-block;
+    padding:2px 10px 3px;
+    border-radius:999px;
+    font-size:11px;
+    font-weight:600;
+    margin-right:6px;
+  }
+  .tag.turf{background:#22c55e22;color:#166534;}
+  .tag.dirt{background:#92400e22;color:#92400e;}
+
+  .big{
+    font-size:18px;
+    font-weight:700;
+    margin-bottom:2px;
+  }
+
+  /* コース情報を小カードで並べる */
+  .course-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(118px,1fr));
+    gap:8px;
+    margin-top:10px;
+  }
+  .cg{
+    background:rgba(255,255,255,.4);
+    border:1px solid rgba(148,163,184,.3);
+    border-radius:12px;
+    padding:5px 8px 7px;
+    font-size:11px;
+    color:#334155;
+  }
+  .cg strong{
+    display:block;
+    font-size:14px;
+    margin-top:1px;
+    color:#0f172a;
+  }
+
+  /* 馬場メーター */
+  .bar{
+    position:relative;
+    height:16px;
+    border-radius:999px;
+    overflow:hidden;
+    border:1px solid #e2e8f0;
+    background:#f8fafc;
+  }
+  .bar .fill{
+    position:absolute;
+    top:0;left:0;bottom:0;
+    background:linear-gradient(90deg,#38bdf8,#22c55e,#f97316,#ef4444);
+    width:0%;
+  }
+  .bar .tick{
+    position:absolute;
+    top:-6px;
+    width:2px;
+    height:28px;
+    background:#94a3b8;
+    opacity:.5;
+  }
+  .legend{
+    display:flex;
+    justify-content:space-between;
+    font-size:11px;
+    color:#475569;
+    margin-top:4px;
+  }
+
+  /* 状態バッジ */
+  .cond-badge{
+    display:inline-block;
+    padding:3px 10px 4px;
+    border-radius:999px;
+    font-size:11px;
+    font-weight:600;
+    margin-left:6px;
+  }
+  .cond-good{background:#dcfce7;color:#166534;}
+  .cond-yayo{background:#fef9c3;color:#854d0e;}
+  .cond-heavy{background:#fee4e2;color:#b91c1c;}
+
+  /* 目安ボックス */
+  .thbox{
+    display:flex;
+    gap:6px;
+    align-items:center;
+  }
+  .mini{
+    font-size:13px;
+    padding:6px 8px;
+    border-radius:10px;
+    border:1px solid #e2e8f0;
+  }
+
+  /* スマホ対応 */
+  @media (max-width:640px){
+    .selector-bar{flex-direction:column;align-items:stretch;}
+    .course-grid{grid-template-columns:repeat(auto-fit,minmax(140px,1fr));}
+    .topbar{flex-direction:column;align-items:flex-start;gap:4px;}
+  }
 </style>
 </head>
 <body>
