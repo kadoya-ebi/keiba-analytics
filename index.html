@@ -148,8 +148,8 @@
     </div>
   </main>
 
-  <script>
-  // --- 競馬場のベースデータ（最小構成） ---
+<script>
+  // --- 競馬場のベースデータ ---
   var COURSES = {
     "東京": {
       "芝": {
@@ -211,7 +211,7 @@
     }
   };
 
-  // --- 今日の値を置いておく箱 ---
+  // --- 今日の値（ここにタブ2で入れたのを保存） ---
   var todayValues = {};
   var trackNames = Object.keys(COURSES);
   for (var i=0; i<trackNames.length; i++) {
@@ -228,6 +228,24 @@
   var selDist = document.getElementById('selDist');
   var courseInfo = document.getElementById('courseInfo');
   var inputList = document.getElementById('inputList');
+
+  // タブ切替
+  var tabView = document.getElementById('tab-view');
+  var tabInput = document.getElementById('tab-input');
+  var tabBtns = document.querySelectorAll('.tab-btn');
+  for (var i=0; i<tabBtns.length; i++){
+    tabBtns[i].addEventListener('click', function(e){
+      for (var j=0; j<tabBtns.length; j++){ tabBtns[j].classList.remove('active'); }
+      e.target.classList.add('active');
+      if (e.target.getAttribute('data-tab') === 'view'){
+        tabView.style.display = 'block';
+        tabInput.style.display = 'none';
+      } else {
+        tabView.style.display = 'none';
+        tabInput.style.display = 'block';
+      }
+    });
+  }
 
   // --- セレクト初期化 ---
   function initSelectors(){
@@ -263,24 +281,6 @@
   });
   selDist.addEventListener('change', renderCourse);
 
-  // --- タブ切替 ---
-  var tabView = document.getElementById('tab-view');
-  var tabInput = document.getElementById('tab-input');
-  var tabBtns = document.querySelectorAll('.tab-btn');
-  for (var i=0; i<tabBtns.length; i++){
-    tabBtns[i].addEventListener('click', function(e){
-      for (var j=0; j<tabBtns.length; j++){ tabBtns[j].classList.remove('active'); }
-      e.target.classList.add('active');
-      if (e.target.getAttribute('data-tab') === 'view'){
-        tabView.style.display = 'block';
-        tabInput.style.display = 'none';
-      } else {
-        tabView.style.display = 'none';
-        tabInput.style.display = 'block';
-      }
-    });
-  }
-
   // --- タブ2の入力欄 ---
   function renderInputList(){
     inputList.innerHTML = "";
@@ -304,21 +304,22 @@
       inputList.appendChild(wrap);
     }
 
-    // 反映ボタン
+    // 反映ボタンの動作
     var applyBtns = inputList.querySelectorAll('button[data-apply]');
     for (var k=0; k<applyBtns.length; k++){
       applyBtns[k].addEventListener('click', function(e){
         var trg = e.target.getAttribute('data-apply');
+        // 入力されてる3つを読む
         var ins = inputList.querySelectorAll('input[data-track="'+trg+'"]');
         for (var m=0; m<ins.length; m++){
           var f = ins[m].getAttribute('data-field');
           var v = ins[m].value;
-          if (f === 'turf.cushion') { todayValues[trg].turf.cushion = v; }
+          if (f === 'turf.cushion')  { todayValues[trg].turf.cushion  = v; }
           if (f === 'turf.moisture') { todayValues[trg].turf.moisture = v; }
           if (f === 'dirt.moisture') { todayValues[trg].dirt.moisture = v; }
         }
-        // 今見てる場なら再描画
-        if (selTrack.value === trg){
+        // 今タブ1でこの競馬場を見てたら、すぐ描き直す
+        if (selTrack.value === trg) {
           renderCourse();
         }
       });
@@ -335,12 +336,12 @@
     var avg = data.base;
     var tv = todayValues[tr];
 
-    // 表示する数値
+    // 表示用の数値
     var cTxt = "-";
     var mTxt = "-%";
     var cVal = 0;
     var mVal = 0;
-    if (sf === "芝"){
+    if (sf === "芝") {
       if (tv.turf.cushion !== "") {
         cTxt = tv.turf.cushion;
         cVal = Number(tv.turf.cushion);
@@ -359,17 +360,17 @@
     var cardBg = (sf === "芝") ? "#e6f7e1" : "#d6b38a";
     var tagBg  = (sf === "芝") ? "#22c55e" : "#8b4513";
 
-    // バー幅
+    // バーの幅と色
     var cW = Math.min(cVal * 9, 100);
     var cColor = "#dbe5eb";
-    if (sf === "芝" && cVal > 0){
+    if (sf === "芝" && cVal > 0) {
       if (cVal <= 8) cColor = "#f97316";
       else if (cVal <= 10) cColor = "#84cc16";
       else cColor = "#60a5fa";
     }
     var mW = Math.min(mVal * 3.3, 100);
     var mColor = "#dbe5eb";
-    if (mVal > 0){
+    if (mVal > 0) {
       if (mVal <= 15) mColor = "#84cc16";
       else if (mVal <= 23) mColor = "#fbbf24";
       else mColor = "#f97316";
@@ -389,11 +390,11 @@
     }
     html += '  </div>';
     html += '  <div class="pill-grid">';
-    html += '    <div class="pill"><span class="lbl">回り</span><span class="val">'+(info?info.turn:"－")+'</span></div>';
-    html += '    <div class="pill"><span class="lbl">直線</span><span class="val">'+(info?info.straight+"m":"－")+'</span></div>';
-    html += '    <div class="pill"><span class="lbl">坂</span><span class="val">'+(info?info.slopePlace:"－")+'</span></div>';
-    html += '    <div class="pill"><span class="lbl">高低差</span><span class="val">'+(info?info.diff+"m":"－")+'</span></div>';
-    html += '    <div class="pill"><span class="lbl">形状</span><span class="val">'+(info?info.shape:"－")+'</span></div>';
+    html += '    <div class="pill"><span class="lbl">回り</span><span class="val">'+(info?info.turn:'－')+'</span></div>';
+    html += '    <div class="pill"><span class="lbl">直線</span><span class="val">'+(info?info.straight+'m':'－')+'</span></div>';
+    html += '    <div class="pill"><span class="lbl">坂</span><span class="val">'+(info?info.slopePlace:'－')+'</span></div>';
+    html += '    <div class="pill"><span class="lbl">高低差</span><span class="val">'+(info?info.diff+'m':'－')+'</span></div>';
+    html += '    <div class="pill"><span class="lbl">形状</span><span class="val">'+(info?info.shape:'－')+'</span></div>';
     html += '  </div>';
     html += '  <div style="margin-top:6px;font-size:.7rem;font-weight:600;">基準タイム目安</div>';
     html += '  <div class="pill-grid">';
@@ -416,7 +417,7 @@
     courseInfo.innerHTML = html;
   }
 
-  // --- コピー ---
+  // --- コピー機能 ---
   function copyCardText(){
     var tr = selTrack.value;
     var sf = selSurface.value;
@@ -443,6 +444,6 @@
   initSelectors();
   renderInputList();
   renderCourse();
-  </script>
+</script>
 </body>
 </html>
